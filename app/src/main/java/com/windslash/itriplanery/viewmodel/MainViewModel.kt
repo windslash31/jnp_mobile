@@ -101,10 +101,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     // Auto-computed checklist progress. Counts every editable step (incl. Alternatives)
     // keyed by its stable id, so it stays correct when steps are added/reordered.
     val progressPercent: StateFlow<Int> = combine(itineraryChecks, itineraryDays) { checks, days ->
-        val allSteps = days.flatMap { it.morning + it.afternoon + it.evening + it.customAlts }
-        val total = allSteps.size
-        val completed = allSteps.count { checks[it.id] == true }
-        if (total == 0) 0 else ((completed.toFloat() / total) * 100).toInt()
+        itineraryProgress(days, checks)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     fun changeTab(tab: String) {
