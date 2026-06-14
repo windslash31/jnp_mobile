@@ -98,8 +98,9 @@ val BentoGrayTextSubtle: Color @Composable get() = if (isDark) Color(0xFFA0A5A9)
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MainTabApp(viewModel: MainViewModel) {
-    var themeMode by remember { mutableStateOf(ThemeMode.LIGHT) }
-    
+    val darkMode by viewModel.darkMode.collectAsStateWithLifecycle()
+    val themeMode = if (darkMode) ThemeMode.DARK else ThemeMode.LIGHT
+
     androidx.compose.runtime.CompositionLocalProvider(LocalThemeMode provides themeMode) {
         val activeTab by viewModel.activeTab.collectAsStateWithLifecycle()
 
@@ -135,9 +136,7 @@ fun MainTabApp(viewModel: MainViewModel) {
                             "map" -> MapScreen(viewModel)
                             "gourmet" -> GourmetScreen(viewModel)
                             "budget" -> BudgetScreen(viewModel)
-                            "guide" -> IntelScreen(viewModel, onThemeToggle = {
-                                themeMode = if (themeMode == ThemeMode.LIGHT) ThemeMode.DARK else ThemeMode.LIGHT
-                            })
+                            "guide" -> IntelScreen(viewModel)
                         }
                     }
                 }
@@ -225,6 +224,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
     val progressPercent by viewModel.progressPercent.collectAsStateWithLifecycle()
     val itineraryDays by viewModel.itineraryDays.collectAsStateWithLifecycle()
     val trip by viewModel.activeTrip.collectAsStateWithLifecycle()
+    val gamification by viewModel.gamificationEnabled.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     val day = itineraryDays.getOrNull(selectedDayIndex) ?: itineraryDays.firstOrNull() ?: return
@@ -343,23 +343,25 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                     
                     Spacer(modifier = Modifier.height(4.dp))
                     
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = rankIcon,
-                            contentDescription = "Rank Icon",
-                            tint = BentoBlueAccent,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text(
-                            text = rankText,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            color = BentoBlueAccent,
-                            letterSpacing = 0.5.sp
-                        )
+                    if (gamification) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = rankIcon,
+                                contentDescription = "Rank Icon",
+                                tint = BentoBlueAccent,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = rankText,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                color = BentoBlueAccent,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
                     }
                 }
             }
@@ -2358,11 +2360,16 @@ fun parseHtmlToAnnotatedString(html: String): AnnotatedString {
 
 // --- 5. INTEL SCREEN ("guide") ---
 @Composable
-fun IntelScreen(viewModel: MainViewModel, onThemeToggle: (() -> Unit)? = null) {
+fun IntelScreen(viewModel: MainViewModel) {
     var subTab by remember { mutableStateOf("bookings") }
     var selectedLangCat by remember { mutableStateOf("All") }
+    var showSettings by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
+
+    if (showSettings) {
+        SettingsDialog(viewModel = viewModel, onDismiss = { showSettings = false })
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // TOP BANNER (BENTO COMPACT OFF-WHITE STYLE)
@@ -2390,10 +2397,10 @@ fun IntelScreen(viewModel: MainViewModel, onThemeToggle: (() -> Unit)? = null) {
                         color = BentoTextSubtle
                     )
                 }
-                androidx.compose.material3.IconButton(onClick = { onThemeToggle?.invoke() }) {
+                androidx.compose.material3.IconButton(onClick = { showSettings = true }) {
                     Icon(
-                        if (isDark) Icons.Filled.Info else Icons.Filled.Settings,
-                        contentDescription = "Toggle Theme",
+                        Icons.Filled.Settings,
+                        contentDescription = "Settings",
                         tint = BentoBlueAccent,
                         modifier = Modifier.size(28.dp)
                     )
@@ -2808,6 +2815,61 @@ fun IntelScreen(viewModel: MainViewModel, onThemeToggle: (() -> Unit)? = null) {
             }
             Spacer(modifier = Modifier.height(30.dp))
         }
+    }
+}
+
+// --- SETTINGS DIALOG ---
+@Composable
+fun SettingsDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
+    val darkMode by viewModel.darkMode.collectAsStateWithLifecycle()
+    val gamification by viewModel.gamificationEnabled.collectAsStateWithLifecycle()
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = BentoBackground),
+            shape = RoundedCornerShape(20.dp),
+            border = BorderStroke(1.dp, BentoTextSubtle.copy(alpha = 0.15f)),
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Settings", fontSize = 18.sp, fontWeight = FontWeight.Black, color = BentoTextDark)
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Filled.Close, contentDescription = "Close", tint = BentoTextSubtle)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                SettingToggleRow("Dark mode", "Use a dark theme (saved across launches)", darkMode) { viewModel.setDarkMode(it) }
+                Spacer(modifier = Modifier.height(4.dp))
+                SettingToggleRow("Tactical rank", "Show the Rookie → Shogun progression", gamification) { viewModel.setGamificationEnabled(it) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingToggleRow(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = BentoTextDark)
+            Text(subtitle, fontSize = 11.sp, color = BentoTextSubtle)
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = BentoBlueAccent
+            )
+        )
     }
 }
 

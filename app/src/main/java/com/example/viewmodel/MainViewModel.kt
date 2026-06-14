@@ -10,6 +10,7 @@ import java.util.UUID
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: JapanMissionRepository
+    private val settings = SettingsRepository(application)
 
     init {
         val database = AppDatabase.getDatabase(application)
@@ -28,6 +29,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateTrip(trip: TripEntity) {
         viewModelScope.launch { repository.updateTrip(trip) }
+    }
+
+    // --- User preferences (persisted via DataStore) ---
+    val darkMode: StateFlow<Boolean> = settings.darkMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val gamificationEnabled: StateFlow<Boolean> = settings.gamificationEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    fun setDarkMode(enabled: Boolean) {
+        viewModelScope.launch { settings.setDarkMode(enabled) }
+    }
+
+    fun setGamificationEnabled(enabled: Boolean) {
+        viewModelScope.launch { settings.setGamificationEnabled(enabled) }
     }
 
     // Active screen tab state
