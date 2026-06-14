@@ -70,24 +70,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         .map { list -> list.associate { it.itemId to it.isCompleted } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
 
-    // Auto-computed checklist progress
+    // Auto-computed checklist progress. Counts every editable step (incl. Alternatives)
+    // keyed by its stable id, so it stays correct when steps are added/reordered.
     val progressPercent: StateFlow<Int> = combine(itineraryChecks, itineraryDays) { checks, days ->
-        var total = 0
-        var completed = 0
-        days.forEachIndexed { dIdx, day ->
-            day.morning.forEachIndexed { iIdx, _ ->
-                total++
-                if (checks["d$dIdx-m-$iIdx"] == true) completed++
-            }
-            day.afternoon.forEachIndexed { iIdx, _ ->
-                total++
-                if (checks["d$dIdx-a-$iIdx"] == true) completed++
-            }
-            day.evening.forEachIndexed { iIdx, _ ->
-                total++
-                if (checks["d$dIdx-e-$iIdx"] == true) completed++
-            }
-        }
+        val allSteps = days.flatMap { it.morning + it.afternoon + it.evening + it.customAlts }
+        val total = allSteps.size
+        val completed = allSteps.count { checks[it.id] == true }
         if (total == 0) 0 else ((completed.toFloat() / total) * 100).toInt()
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 

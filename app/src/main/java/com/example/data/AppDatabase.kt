@@ -49,7 +49,7 @@ data class StepEntity(
 
 // Mappers between the persisted entity and the UI/domain model used everywhere else.
 fun StepEntity.toStep(): ItineraryStep =
-    ItineraryStep(time = time, text = text, meta = meta, cost = cost, type = type, details = details, mapQuery = mapQuery)
+    ItineraryStep(time = time, text = text, meta = meta, cost = cost, type = type, details = details, mapQuery = mapQuery, id = id)
 
 fun ItineraryStep.toEntity(dayIndex: Int, period: String, id: String = UUID.randomUUID().toString()): StepEntity =
     StepEntity(id = id, dayIndex = dayIndex, period = period, time = time, text = text, meta = meta, cost = cost, type = type, details = details, mapQuery = mapQuery)

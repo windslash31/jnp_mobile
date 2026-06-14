@@ -214,7 +214,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
     val itineraryDays by viewModel.itineraryDays.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    val day = itineraryDays[selectedDayIndex]
+    val day = itineraryDays.getOrNull(selectedDayIndex) ?: itineraryDays.firstOrNull() ?: return
 
     var selectedIntelStep by remember { mutableStateOf<ItineraryStep?>(null) }
     var pendingExpenseStep by remember { mutableStateOf<Pair<String, com.example.data.ItineraryStep>?>(null) }
@@ -1056,7 +1056,9 @@ fun TimelineItemSection(
         )
 
         items.forEachIndexed { i, item ->
-            val checkKey = "d$dayIndex-$sectionTag-$i"
+            // Prefer the step's stable id; fall back to positional key for any step
+            // without one (shouldn't happen once steps are loaded from the database).
+            val checkKey = item.id.ifEmpty { "d$dayIndex-$sectionTag-$i" }
             val isCompleted = checks[checkKey] == true
 
             @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -1343,7 +1345,7 @@ fun MapScreen(viewModel: MainViewModel) {
     val context = LocalContext.current
     var recenterTrigger by remember { mutableStateOf(0) }
 
-    val day = itineraryDays[activeDayIndex]
+    val day = itineraryDays.getOrNull(activeDayIndex) ?: itineraryDays.firstOrNull() ?: return
     val markers = day.markers
     val alts = day.alts
 
@@ -1353,6 +1355,16 @@ fun MapScreen(viewModel: MainViewModel) {
     LaunchedEffect(selectedMarker) {
         selectedMarker?.let { pt ->
             webViewRef?.evaluateJavascript("if(typeof map !== 'undefined') map.setView([${pt.lat}, ${pt.lng}], 16);", null)
+        }
+    }
+
+    // Recenter the map to fit all pins when the refresh button is tapped.
+    LaunchedEffect(recenterTrigger) {
+        if (recenterTrigger > 0) {
+            webViewRef?.evaluateJavascript(
+                "if (typeof map !== 'undefined' && typeof bounds !== 'undefined' && bounds.length > 0) { try { map.fitBounds(bounds, {padding:[50,50]}); } catch(e){} }",
+                null
+            )
         }
     }
 
