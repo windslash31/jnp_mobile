@@ -90,6 +90,20 @@ class RepositoryTest {
     }
 
     @Test
+    fun packingAddToggleDelete() = runTest {
+        repo.addPackingItem("Passport")
+        repo.addPackingItem("Charger")
+        val items = repo.allPacking.first()
+        assertEquals(2, items.size)
+
+        repo.togglePacking(items.first())
+        assertEquals(true, repo.allPacking.first().first { it.id == items.first().id }.checked)
+
+        repo.deletePacking(items.first().id)
+        assertEquals(1, repo.allPacking.first().size)
+    }
+
+    @Test
     fun replaceItinerarySwapsDaysAndSteps() = runTest {
         // Seed the original itinerary + a stray step.
         repo.seedDaysIfEmpty(ItineraryData.days)

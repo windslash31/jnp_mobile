@@ -153,6 +153,23 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         itineraryProgress(days, checks)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
+    // Packing list
+    val packingItems: StateFlow<List<PackingItemEntity>> = repository.allPacking
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun addPackingItem(label: String) {
+        if (label.isBlank()) return
+        viewModelScope.launch { repository.addPackingItem(label.trim()) }
+    }
+
+    fun togglePacking(item: PackingItemEntity) {
+        viewModelScope.launch { repository.togglePacking(item) }
+    }
+
+    fun deletePacking(id: Long) {
+        viewModelScope.launch { repository.deletePacking(id) }
+    }
+
     fun changeTab(tab: String) {
         _activeTab.value = tab
     }

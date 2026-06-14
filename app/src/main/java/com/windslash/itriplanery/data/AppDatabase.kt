@@ -72,6 +72,14 @@ data class DayEntity(
     val dataJson: String
 )
 
+// A single packing-list item.
+@Entity(tableName = "packing_items")
+data class PackingItemEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val label: String,
+    val checked: Boolean = false
+)
+
 // Mappers between the persisted entity and the UI/domain model used everywhere else.
 fun StepEntity.toStep(): ItineraryStep =
     ItineraryStep(time = time, text = text, meta = meta, cost = cost, type = type, details = details, mapQuery = mapQuery, id = id)
@@ -130,6 +138,21 @@ interface TripDao {
 }
 
 @Dao
+interface PackingDao {
+    @Query("SELECT * FROM packing_items ORDER BY id")
+    fun getAll(): Flow<List<PackingItemEntity>>
+
+    @Insert
+    suspend fun insert(item: PackingItemEntity)
+
+    @Update
+    suspend fun update(item: PackingItemEntity)
+
+    @Query("DELETE FROM packing_items WHERE id = :id")
+    suspend fun deleteById(id: Long)
+}
+
+@Dao
 interface DayDao {
     @Query("SELECT * FROM itinerary_days ORDER BY dayIndex")
     fun getAll(): Flow<List<DayEntity>>
@@ -168,8 +191,8 @@ interface ItineraryStepDao {
 // --- DATABASE ---
 
 @Database(
-    entities = [TransactionEntity::class, ItineraryCheckEntity::class, FoodCheckEntity::class, StepEntity::class, TripEntity::class, DayEntity::class],
-    version = 5,
+    entities = [TransactionEntity::class, ItineraryCheckEntity::class, FoodCheckEntity::class, StepEntity::class, TripEntity::class, DayEntity::class, PackingItemEntity::class],
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -179,6 +202,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun itineraryStepDao(): ItineraryStepDao
     abstract fun tripDao(): TripDao
     abstract fun dayDao(): DayDao
+    abstract fun packingDao(): PackingDao
 
     companion object {
         @Volatile
@@ -229,6 +253,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // v5 -> v6: add the packing_items table.
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `packing_items` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT, `label` TEXT NOT NULL, `checked` INTEGER NOT NULL)"
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -236,7 +270,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "japan_mission_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .fallbackToDestructiveMigration(dropAllTables = true) // safety net for unhandled version jumps
                     .build()
                 INSTANCE = instance
@@ -256,6 +290,11 @@ class JapanMissionRepository(private val db: AppDatabase) {
     val activeTrip: Flow<TripEntity?> = db.tripDao().getActiveTrip()
     val allDays: Flow<List<DayMeta>> = db.dayDao().getAll()
         .map { list -> list.mapNotNull { DayMetaJson.fromJson(it.dataJson) } }
+    val allPacking: Flow<List<PackingItemEntity>> = db.packingDao().getAll()
+
+    suspend fun addPackingItem(label: String) = db.packingDao().insert(PackingItemEntity(label = label))
+    suspend fun togglePacking(item: PackingItemEntity) = db.packingDao().update(item.copy(checked = !item.checked))
+    suspend fun deletePacking(id: Long) = db.packingDao().deleteById(id)
 
     suspend fun insertTransaction(tx: TransactionEntity) {
         db.transactionDao().insertTransaction(tx)

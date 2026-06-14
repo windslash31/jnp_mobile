@@ -2480,7 +2480,8 @@ fun IntelScreen(viewModel: MainViewModel) {
             listOf(
                 "bookings" to "TARGETS",
                 "language" to "TRANSLATE",
-                "tips" to "TRAVEL HACK"
+                "tips" to "TRAVEL HACK",
+                "packing" to "PACKING"
             ).forEach { (id, label) ->
                 val isSelected = subTab == id
                 Box(
@@ -2824,6 +2825,10 @@ fun IntelScreen(viewModel: MainViewModel) {
                             }
                         }
                     }
+                }
+
+                "packing" -> {
+                    PackingSection(viewModel)
                 }
 
                 "tips" -> {
@@ -3186,6 +3191,89 @@ fun ImportDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                         enabled = json.isNotBlank()
                     ) {
                         Text("Import", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// --- PACKING LIST (Intel sub-tab) ---
+@Composable
+fun PackingSection(viewModel: MainViewModel) {
+    val items by viewModel.packingItems.collectAsStateWithLifecycle()
+    var newItem by remember { mutableStateOf("") }
+    val packed = items.count { it.checked }
+
+    Column {
+        Text(
+            text = "PACKING LIST",
+            fontSize = 12.sp, fontWeight = FontWeight.Black, color = BentoTextDark,
+            letterSpacing = 1.sp, modifier = Modifier.padding(bottom = 2.dp)
+        )
+        Text(
+            text = if (items.isEmpty()) "Add what you need to pack" else "$packed / ${items.size} packed",
+            fontSize = 11.sp, color = BentoTextSubtle, modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = newItem,
+                onValueChange = { newItem = it },
+                placeholder = { Text("Add an item…", color = BentoTextSubtle) },
+                singleLine = true,
+                modifier = Modifier.weight(1f),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = BentoTextDark, unfocusedTextColor = BentoTextDark,
+                    focusedBorderColor = BentoBlueAccent, unfocusedBorderColor = BentoTextSubtle.copy(alpha = 0.2f),
+                    focusedContainerColor = DeepBlueCard, unfocusedContainerColor = DeepBlueCard, cursorColor = BentoBlueAccent
+                )
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Button(
+                onClick = { viewModel.addPackingItem(newItem); newItem = "" },
+                enabled = newItem.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = AccentBlueStrong),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "Add", tint = Color.White)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        items.forEach { item ->
+            Card(
+                colors = CardDefaults.cardColors(containerColor = DeepBlueCard),
+                border = BorderStroke(1.dp, if (item.checked) GreenM3.copy(alpha = 0.4f) else BentoTextSubtle.copy(alpha = 0.12f)),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(26.dp)
+                            .clip(CircleShape)
+                            .border(2.dp, if (item.checked) GreenM3 else BentoTextSubtle.copy(alpha = 0.4f), CircleShape)
+                            .background(if (item.checked) GreenM3 else Color.Transparent)
+                            .clickable { viewModel.togglePacking(item) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (item.checked) Icon(Icons.Filled.Check, "", tint = Color.White, modifier = Modifier.size(15.dp))
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = item.label,
+                        fontSize = 14.sp,
+                        color = if (item.checked) BentoTextSubtle else BentoTextDark,
+                        textDecoration = if (item.checked) TextDecoration.LineThrough else TextDecoration.None,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = { viewModel.deletePacking(item.id) }) {
+                        Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = BentoTextSubtle, modifier = Modifier.size(18.dp))
                     }
                 }
             }
