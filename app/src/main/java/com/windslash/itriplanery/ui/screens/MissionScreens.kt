@@ -1483,7 +1483,8 @@ fun MapScreen(viewModel: MainViewModel) {
                 var markersGroup = L.featureGroup().addTo(map);
                 var bounds = [];
                 var points = $markersArray;
-                
+                function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
                 points.forEach(function(pt) {
                     var html = "";
                     var t = (pt.title || "").toLowerCase();
@@ -1511,18 +1512,18 @@ fun MapScreen(viewModel: MainViewModel) {
 
                     if (pt.lat !== null && pt.lng !== null) {
                         var marker = L.marker([pt.lat, pt.lng], { icon: customIcon }).addTo(markersGroup);
-                        marker.bindPopup("<b>" + pt.title + "</b><br><small>" + pt.meta + "</small>");
+                        marker.bindPopup("<b>" + esc(pt.title) + "</b><br><small>" + esc(pt.meta) + "</small>");
                         bounds.push([pt.lat, pt.lng]);
                     } else {
                         // fallback geocoding
-                        fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(pt.query + ' Japan'))
+                        fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(pt.query))
                             .then(response => response.json())
                             .then(data => {
                                 if (data && data.length > 0) {
                                     var lat = parseFloat(data[0].lat);
                                     var lon = parseFloat(data[0].lon);
                                     var marker = L.marker([lat, lon], { icon: customIcon }).addTo(markersGroup);
-                                    marker.bindPopup("<b>" + pt.title + "</b><br><small>" + pt.meta + "</small>");
+                                    marker.bindPopup("<b>" + esc(pt.title) + "</b><br><small>" + esc(pt.meta) + "</small>");
                                     bounds.push([lat, lon]);
                                     map.fitBounds(bounds, { padding: [50, 50] });
                                 }
@@ -1633,7 +1634,8 @@ fun MapScreen(viewModel: MainViewModel) {
                         )
                         settings.javaScriptEnabled = true
                         settings.domStorageEnabled = true
-                        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                        // All map resources are HTTPS, so no need to allow insecure mixed content.
+                        settings.mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
                         webViewClient = WebViewClient()
                         webChromeClient = android.webkit.WebChromeClient()
                         setTag(id, htmlContent)
