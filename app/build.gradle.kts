@@ -69,7 +69,7 @@ secrets {
 // This makes it easy to add them back in the future if needed.
 dependencies {
   implementation(platform(libs.androidx.compose.bom))
-  implementation(platform(libs.firebase.bom))
+  // implementation(platform(libs.firebase.bom)) // unused — no Firebase code
   // implementation(libs.accompanist.permissions)
   implementation(libs.androidx.activity.compose)
   // implementation(libs.androidx.camera.camera2)
@@ -91,15 +91,15 @@ dependencies {
   implementation(libs.androidx.room.ktx)
   implementation(libs.androidx.room.runtime)
   // implementation(libs.coil.compose)
-  implementation(libs.converter.moshi)
+  // implementation(libs.converter.moshi) // unused — Retrofit/Moshi bridge
   // implementation(libs.firebase.ai)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
-  implementation(libs.logging.interceptor)
-  implementation(libs.moshi.kotlin)
-  implementation(libs.okhttp)
+  // implementation(libs.logging.interceptor) // unused — OkHttp logging
+  implementation(libs.moshi.kotlin) // kept for JSON import/export (#15, #25)
+  // implementation(libs.okhttp) // unused — no network layer
   // implementation(libs.play.services.location)
-  implementation(libs.retrofit)
+  // implementation(libs.retrofit) // unused — no network layer
   testImplementation(libs.androidx.compose.ui.test.junit4)
   testImplementation(libs.androidx.core)
   testImplementation(libs.androidx.junit)

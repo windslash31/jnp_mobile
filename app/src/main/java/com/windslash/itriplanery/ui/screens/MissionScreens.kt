@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -262,22 +263,26 @@ fun ItineraryScreen(viewModel: MainViewModel) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Header rank determination
-    val rankText = when {
-        progressPercent == 100 -> "SHOGUN"
-        progressPercent >= 80 -> "SAMURAI"
-        progressPercent >= 60 -> "NINJA"
-        progressPercent >= 40 -> "VETERAN"
-        progressPercent >= 20 -> "SCOUT"
-        else -> "ROOKIE"
+    // Header rank determination (pure values memoized on progress)
+    val rankText = remember(progressPercent) {
+        when {
+            progressPercent == 100 -> "SHOGUN"
+            progressPercent >= 80 -> "SAMURAI"
+            progressPercent >= 60 -> "NINJA"
+            progressPercent >= 40 -> "VETERAN"
+            progressPercent >= 20 -> "SCOUT"
+            else -> "ROOKIE"
+        }
     }
-    val rankIcon = when {
-        progressPercent == 100 -> Icons.Filled.Star
-        progressPercent >= 80 -> Icons.Filled.Star
-        progressPercent >= 60 -> Icons.Filled.Info
-        progressPercent >= 40 -> Icons.Filled.Info
-        progressPercent >= 20 -> Icons.Filled.Search
-        else -> Icons.Filled.Star
+    val rankIcon = remember(progressPercent) {
+        when {
+            progressPercent == 100 -> Icons.Filled.Star
+            progressPercent >= 80 -> Icons.Filled.Star
+            progressPercent >= 60 -> Icons.Filled.Info
+            progressPercent >= 40 -> Icons.Filled.Info
+            progressPercent >= 20 -> Icons.Filled.Search
+            else -> Icons.Filled.Star
+        }
     }
     val rankColor = when {
         progressPercent >= 80 -> AccentAmber
@@ -1673,7 +1678,7 @@ fun MapScreen(viewModel: MainViewModel) {
                         modifier = Modifier.weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(markers) { pt ->
+                        items(markers, key = { it.title }) { pt ->
                             val isItemActive = selectedMarker == pt
                             Card(
                                 modifier = Modifier
@@ -1870,7 +1875,7 @@ fun GourmetScreen(viewModel: MainViewModel) {
                                 letterSpacing = 0.5.sp
                             )
                         }
-                        items(filteredItems) { item ->
+                        items(filteredItems, key = { it.id }) { item ->
                             val isChecked = foodChecks[item.id] == true
                             Card(
                                 colors = CardDefaults.cardColors(containerColor = DeepBlueCard),
@@ -3079,7 +3084,7 @@ fun BottomNavigation(
             selected = activeTab == "plan",
             onClick = { onTabSelected("plan") },
             label = { Text("Plan", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-            icon = { Icon(Icons.Filled.List, contentDescription = "Plan") },
+            icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Plan") },
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = BentoBlueAccent,
                 selectedTextColor = BentoBlueAccent,

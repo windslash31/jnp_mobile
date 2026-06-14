@@ -200,7 +200,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "japan_mission_database"
                 )
                     .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
-                    .fallbackToDestructiveMigration() // safety net for unhandled version jumps
+                    .fallbackToDestructiveMigration(dropAllTables = true) // safety net for unhandled version jumps
                     .build()
                 INSTANCE = instance
                 instance
