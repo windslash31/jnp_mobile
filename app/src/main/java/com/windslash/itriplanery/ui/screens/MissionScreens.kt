@@ -2878,6 +2878,7 @@ fun IntelScreen(viewModel: MainViewModel) {
 fun SettingsDialog(viewModel: MainViewModel, onDismiss: () -> Unit, onEditTrip: () -> Unit) {
     val darkMode by viewModel.darkMode.collectAsStateWithLifecycle()
     val gamification by viewModel.gamificationEnabled.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     ThemedDialog(onDismissRequest = onDismiss) {
         Card(
@@ -2910,6 +2911,28 @@ fun SettingsDialog(viewModel: MainViewModel, onDismiss: () -> Unit, onEditTrip: 
                     Icon(Icons.Filled.Edit, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Edit trip details", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = {
+                        val json = viewModel.exportJson()
+                        if (json.isNullOrBlank()) {
+                            Toast.makeText(context, "Nothing to export yet", Toast.LENGTH_SHORT).show()
+                        } else {
+                            val send = Intent(Intent.ACTION_SEND).apply {
+                                type = "application/json"
+                                putExtra(Intent.EXTRA_TEXT, json)
+                                putExtra(Intent.EXTRA_TITLE, "itinerary.json")
+                            }
+                            context.startActivity(Intent.createChooser(send, "Share trip"))
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, BentoTextSubtle.copy(alpha = 0.3f))
+                ) {
+                    Icon(Icons.Filled.Share, contentDescription = null, tint = BentoTextDark, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Export / share trip (JSON)", color = BentoTextDark, fontWeight = FontWeight.Bold)
                 }
             }
         }

@@ -31,6 +31,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { repository.updateTrip(trip) }
     }
 
+    /** Serialize the active trip + its itinerary to portable JSON (for export/share). */
+    fun exportJson(): String? {
+        val trip = activeTrip.value ?: return null
+        return TripJson.toJson(buildTripExport(trip, itineraryDays.value))
+    }
+
     // --- User preferences (persisted via DataStore) ---
     val darkMode: StateFlow<Boolean> = settings.darkMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
