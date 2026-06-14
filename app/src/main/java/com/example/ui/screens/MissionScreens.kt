@@ -169,6 +169,18 @@ fun launchGoogleMaps(context: Context, query: String) {
     }
 }
 
+// --- COMMONS: CURRENCY SYMBOL FROM A TRIP'S ISO CODE ---
+fun currencySymbol(code: String): String = when (code.uppercase()) {
+    "JPY" -> "¥"
+    "IDR" -> "Rp"
+    "USD" -> "$"
+    "EUR" -> "€"
+    "GBP" -> "£"
+    "KRW" -> "₩"
+    "THB" -> "฿"
+    else -> try { java.util.Currency.getInstance(code.uppercase()).symbol } catch (e: Exception) { code }
+}
+
 // --- COMMONS: CATEGORY PILL FILTER ---
 @Composable
 fun CategoryPill(
@@ -212,6 +224,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
     val checks by viewModel.itineraryChecks.collectAsStateWithLifecycle()
     val progressPercent by viewModel.progressPercent.collectAsStateWithLifecycle()
     val itineraryDays by viewModel.itineraryDays.collectAsStateWithLifecycle()
+    val trip by viewModel.activeTrip.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     val day = itineraryDays.getOrNull(selectedDayIndex) ?: itineraryDays.firstOrNull() ?: return
@@ -263,20 +276,20 @@ fun ItineraryScreen(viewModel: MainViewModel) {
             ) {
                 Column {
                     Text(
-                        text = "Japan Itinerary",
+                        text = trip?.name ?: "Itinerary",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         color = BentoTextSubtle
                     )
                     Text(
-                        text = "Tokyo, Shinjuku",
+                        text = trip?.destination ?: "",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = BentoTextDark,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                     Text(
-                        text = "Travel Checklist: Jessi & Putra",
+                        text = "Travel Checklist: ${trip?.travelerNames ?: ""}",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = BentoTextSubtle,
@@ -1918,11 +1931,13 @@ fun GourmetScreen(viewModel: MainViewModel) {
 @Composable
 fun BudgetScreen(viewModel: MainViewModel) {
     val txs by viewModel.transactions.collectAsStateWithLifecycle()
+    val trip by viewModel.activeTrip.collectAsStateWithLifecycle()
     var isAddModalOpen by remember { mutableStateOf(false) }
 
+    val symbol = currencySymbol(trip?.currencyCode ?: "JPY")
     val totalSpent = txs.sumOf { it.amount }
-    val budgetEstimate = 150000.0
-    val fractionSpent = (totalSpent / budgetEstimate).coerceIn(0.0, 1.0).toFloat()
+    val budgetEstimate = trip?.budgetAmount ?: 150000.0
+    val fractionSpent = if (budgetEstimate <= 0.0) 0f else (totalSpent / budgetEstimate).coerceIn(0.0, 1.0).toFloat()
     val percentSpentText = (fractionSpent * 100).toInt()
 
     val catTotals = remember(txs) {
@@ -1969,7 +1984,7 @@ fun BudgetScreen(viewModel: MainViewModel) {
                             color = BentoGreenTextSubtle
                         )
                         Text(
-                            text = "¥${String.format("%,.0f", totalSpent)}",
+                            text = "$symbol${String.format("%,.0f", totalSpent)}",
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Black,
                             color = BentoGreenTextDark,
@@ -2001,9 +2016,9 @@ fun BudgetScreen(viewModel: MainViewModel) {
                         .padding(top = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("¥0", color = BentoTextSubtle, fontSize = 10.sp)
-                    Text("$percentSpentText% of ¥150k Estimate Limit", color = BentoGreenTextDark, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    Text("¥150k", color = BentoTextSubtle, fontSize = 10.sp)
+                    Text("${symbol}0", color = BentoTextSubtle, fontSize = 10.sp)
+                    Text("$percentSpentText% of $symbol${String.format("%,.0f", budgetEstimate)} Limit", color = BentoGreenTextDark, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("$symbol${String.format("%,.0f", budgetEstimate)}", color = BentoTextSubtle, fontSize = 10.sp)
                 }
             }
         }
@@ -2044,7 +2059,7 @@ fun BudgetScreen(viewModel: MainViewModel) {
                                 )
                                 Text(cat, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = BentoTextSubtle, modifier = Modifier.padding(top = 2.dp))
                                 Text(
-                                    text = "¥${String.format("%,.0f", total)}",
+                                    text = "$symbol${String.format("%,.0f", total)}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Black,
                                     color = BentoTextDark,
@@ -2155,7 +2170,7 @@ fun BudgetScreen(viewModel: MainViewModel) {
                                     }
 
                                     Text(
-                                        text = "¥${String.format("%,.0f", t.amount)}",
+                                        text = "$symbol${String.format("%,.0f", t.amount)}",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Black,
                                         color = BentoGreenTextDark,
