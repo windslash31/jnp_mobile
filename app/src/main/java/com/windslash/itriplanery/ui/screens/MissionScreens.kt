@@ -2412,6 +2412,7 @@ fun IntelScreen(viewModel: MainViewModel) {
     var selectedLangCat by remember { mutableStateOf("All") }
     var showSettings by remember { mutableStateOf(false) }
     var showTripEditor by remember { mutableStateOf(false) }
+    var showImport by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
 
@@ -2419,11 +2420,15 @@ fun IntelScreen(viewModel: MainViewModel) {
         SettingsDialog(
             viewModel = viewModel,
             onDismiss = { showSettings = false },
-            onEditTrip = { showSettings = false; showTripEditor = true }
+            onEditTrip = { showSettings = false; showTripEditor = true },
+            onImport = { showSettings = false; showImport = true }
         )
     }
     if (showTripEditor) {
         TripEditorDialog(viewModel = viewModel, onDismiss = { showTripEditor = false })
+    }
+    if (showImport) {
+        ImportDialog(viewModel = viewModel, onDismiss = { showImport = false })
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -2875,7 +2880,7 @@ fun IntelScreen(viewModel: MainViewModel) {
 
 // --- SETTINGS DIALOG ---
 @Composable
-fun SettingsDialog(viewModel: MainViewModel, onDismiss: () -> Unit, onEditTrip: () -> Unit) {
+fun SettingsDialog(viewModel: MainViewModel, onDismiss: () -> Unit, onEditTrip: () -> Unit, onImport: () -> Unit) {
     val darkMode by viewModel.darkMode.collectAsStateWithLifecycle()
     val gamification by viewModel.gamificationEnabled.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -2933,6 +2938,16 @@ fun SettingsDialog(viewModel: MainViewModel, onDismiss: () -> Unit, onEditTrip: 
                     Icon(Icons.Filled.Share, contentDescription = null, tint = BentoTextDark, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Export / share trip (JSON)", color = BentoTextDark, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = onImport,
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, BentoTextSubtle.copy(alpha = 0.3f))
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null, tint = BentoTextDark, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Import trip (JSON / AI)", color = BentoTextDark, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -3091,6 +3106,91 @@ private fun TripField(label: String, value: String, numeric: Boolean = false, on
             cursorColor = BentoBlueAccent
         )
     )
+}
+
+// --- IMPORT ---
+private const val IMPORT_AI_PROMPT = """Create a travel itinerary as JSON. Output ONLY the JSON (no commentary), matching this EXACT structure:
+{
+  "schemaVersion": 1,
+  "trip": { "name": "", "destination": "", "startDate": "", "endDate": "", "currencyCode": "JPY", "budgetAmount": 0, "travelerNames": "" },
+  "days": [
+    { "date": "Day 1", "title": "", "location": "",
+      "morning":   [ { "time": "09:00", "text": "", "type": "visit", "cost": 0 } ],
+      "afternoon": [ { "time": "13:00", "text": "", "type": "food", "cost": 0 } ],
+      "evening":   [ { "time": "19:00", "text": "", "type": "food", "cost": 0 } ] }
+  ]
+}
+Fill it with a realistic plan for: [DESTINATION], [DATES], [NUMBER OF TRAVELERS]. Use the local ISO currency code (e.g. JPY, USD, EUR). "type" must be one of: visit, food, transit, shopping, logistics, sightseeing. Include one object per day in "days"."""
+
+@Composable
+fun ImportDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val clipboard = LocalClipboardManager.current
+    var json by remember { mutableStateOf("") }
+
+    ThemedDialog(onDismissRequest = onDismiss) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = BentoBackground),
+            shape = RoundedCornerShape(20.dp),
+            border = BorderStroke(1.dp, BentoTextSubtle.copy(alpha = 0.15f)),
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
+                Text("Import Trip", fontSize = 18.sp, fontWeight = FontWeight.Black, color = BentoTextDark)
+                Text(
+                    "Copy the AI prompt, ask any AI (ChatGPT / Claude / Gemini) to fill it in, then paste the JSON back here. This replaces your current itinerary.",
+                    fontSize = 11.sp, color = BentoTextSubtle, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                )
+                OutlinedButton(
+                    onClick = {
+                        clipboard.setText(AnnotatedString(IMPORT_AI_PROMPT))
+                        Toast.makeText(context, "AI prompt copied", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, BentoTextSubtle.copy(alpha = 0.3f))
+                ) {
+                    Icon(Icons.Filled.Share, contentDescription = null, tint = BentoTextDark, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Copy AI prompt", color = BentoTextDark, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = json,
+                    onValueChange = { json = it },
+                    label = { Text("Paste itinerary JSON here", color = BentoTextSubtle) },
+                    minLines = 5,
+                    maxLines = 10,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = BentoTextDark, unfocusedTextColor = BentoTextDark,
+                        focusedBorderColor = BentoBlueAccent, unfocusedBorderColor = BentoTextSubtle.copy(alpha = 0.2f),
+                        focusedContainerColor = DeepBlueCard, unfocusedContainerColor = DeepBlueCard, cursorColor = BentoBlueAccent
+                    )
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel", color = BentoTextSubtle, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            if (viewModel.importJson(json)) {
+                                Toast.makeText(context, "Trip imported", Toast.LENGTH_SHORT).show()
+                                onDismiss()
+                            } else {
+                                Toast.makeText(context, "Invalid JSON — check the format", Toast.LENGTH_LONG).show()
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentBlueStrong),
+                        enabled = json.isNotBlank()
+                    ) {
+                        Text("Import", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
 }
 
 // --- BOTTOM NAVIGATION BAR ---

@@ -38,6 +38,43 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         return TripJson.toJson(buildTripExport(trip, itineraryDays.value))
     }
 
+    /**
+     * Import a trip from portable JSON: overwrites the active trip's metadata and replaces
+     * its entire itinerary (days + steps). Returns false if the JSON is invalid / no active trip.
+     */
+    fun importJson(json: String): Boolean {
+        val env = TripJson.fromJson(json) ?: return false
+        val current = activeTrip.value ?: return false
+        viewModelScope.launch {
+            repository.updateTrip(
+                current.copy(
+                    name = env.trip.name,
+                    destination = env.trip.destination,
+                    startDate = env.trip.startDate,
+                    endDate = env.trip.endDate,
+                    currencyCode = env.trip.currencyCode,
+                    budgetAmount = env.trip.budgetAmount,
+                    travelerNames = env.trip.travelerNames
+                )
+            )
+            val metas = env.days.mapIndexed { i, d ->
+                DayMeta(date = d.date, day = "Day ${i + 1}", title = d.title, location = d.location, steps = 0)
+            }
+            val stepsByDay = env.days.mapIndexed { i, d ->
+                fun List<StepExport>.toEntities(period: String) = map {
+                    StepEntity(
+                        id = UUID.randomUUID().toString(), dayIndex = i, period = period,
+                        time = it.time, text = it.text, meta = it.meta, cost = it.cost,
+                        type = it.type, details = it.details, mapQuery = it.mapQuery
+                    )
+                }
+                d.morning.toEntities("morning") + d.afternoon.toEntities("afternoon") + d.evening.toEntities("evening")
+            }
+            repository.replaceItinerary(metas, stepsByDay)
+        }
+        return true
+    }
+
     // --- User preferences (persisted via DataStore) ---
     val darkMode: StateFlow<Boolean> = settings.darkMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
