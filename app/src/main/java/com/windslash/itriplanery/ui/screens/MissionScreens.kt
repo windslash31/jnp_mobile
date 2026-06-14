@@ -249,6 +249,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
     val itineraryDays by viewModel.itineraryDays.collectAsStateWithLifecycle()
     val trip by viewModel.activeTrip.collectAsStateWithLifecycle()
     val gamification by viewModel.gamificationEnabled.collectAsStateWithLifecycle()
+    val symbol = currencySymbol(trip?.currencyCode ?: "JPY")
     val context = LocalContext.current
 
     val day = itineraryDays.getOrNull(selectedDayIndex) ?: itineraryDays.firstOrNull() ?: return
@@ -489,7 +490,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                     )
 
                     // TIMELINE
-                    TimelineItemSection("Morning", day.morning, selectedDayIndex, "m", checks, context,
+                    TimelineItemSection("Morning", day.morning, selectedDayIndex, "m", checks, context, currencySymbol = symbol,
                         onCheckChanged = { key, isChecked, item ->
                             viewModel.toggleItineraryCheck(key, isChecked)
                             if (isChecked) {
@@ -508,7 +509,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         Text("+ Add Step", color = BentoBlueAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
 
-                    TimelineItemSection("Afternoon", day.afternoon, selectedDayIndex, "a", checks, context,
+                    TimelineItemSection("Afternoon", day.afternoon, selectedDayIndex, "a", checks, context, currencySymbol = symbol,
                         onCheckChanged = { key, isChecked, item ->
                             viewModel.toggleItineraryCheck(key, isChecked)
                             if (isChecked) {
@@ -525,7 +526,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         Text("+ Add Step", color = BentoBlueAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
 
-                    TimelineItemSection("Evening", day.evening, selectedDayIndex, "e", checks, context,
+                    TimelineItemSection("Evening", day.evening, selectedDayIndex, "e", checks, context, currencySymbol = symbol,
                         onCheckChanged = { key, isChecked, item ->
                             viewModel.toggleItineraryCheck(key, isChecked)
                             if (isChecked) {
@@ -542,7 +543,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         Text("+ Add Step", color = BentoBlueAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
 
-                    TimelineItemSection("Alternative", day.customAlts, selectedDayIndex, "alt", checks, context,
+                    TimelineItemSection("Alternative", day.customAlts, selectedDayIndex, "alt", checks, context, currencySymbol = symbol,
                         onCheckChanged = { key, isChecked, item ->
                             viewModel.toggleItineraryCheck(key, isChecked)
                             if (isChecked) {
@@ -580,12 +581,12 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         )
 
                         if (day.food != null) {
-                            ObjectiveRow(title = "Target Alpha (Food)", obj = day.food, context = context)
+                            ObjectiveRow(title = "Target Alpha (Food)", obj = day.food, context = context, currencySymbol = symbol)
                         }
 
                         if (day.snack != null) {
                             Spacer(modifier = Modifier.height(12.dp))
-                            ObjectiveRow(title = "Target Bravo (Snack)", obj = day.snack, context = context)
+                            ObjectiveRow(title = "Target Bravo (Snack)", obj = day.snack, context = context, currencySymbol = symbol)
                         }
 
                         if (day.alts.isNotEmpty()) {
@@ -762,7 +763,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                     TextField(
                         value = expenseAmount,
                         onValueChange = { expenseAmount = it },
-                        label = { Text("Actual Cost (¥)", color = BentoTextSubtle) },
+                        label = { Text("Actual Cost ($symbol)", color = BentoTextSubtle) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                         colors = TextFieldDefaults.colors(
@@ -985,7 +986,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                     OutlinedTextField(
                         value = newCost,
                         onValueChange = { newCost = it },
-                        label = { Text("Estimated Cost (¥ - Optional)", color = BentoTextSubtle) },
+                        label = { Text("Estimated Cost ($symbol - Optional)", color = BentoTextSubtle) },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                         singleLine = true,
@@ -1077,6 +1078,7 @@ fun TimelineItemSection(
     sectionTag: String,
     checks: Map<String, Boolean>,
     context: Context,
+    currencySymbol: String = "¥",
     onCheckChanged: (String, Boolean, ItineraryStep) -> Unit,
     onStrategyClicked: (com.windslash.itriplanery.data.ItineraryStep) -> Unit,
     onEditClicked: ((Int) -> Unit)? = null,
@@ -1210,7 +1212,7 @@ fun TimelineItemSection(
                                 )
                                 if (item.cost > 0) {
                                     Text(
-                                        text = "¥${item.cost}",
+                                        text = "$currencySymbol${item.cost}",
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = BentoTextSubtle,
@@ -1329,7 +1331,7 @@ fun FootstepsIndicator(steps: Int) {
 }
 
 @Composable
-fun ObjectiveRow(title: String, obj: PriorityObjective, context: Context) {
+fun ObjectiveRow(title: String, obj: PriorityObjective, context: Context, currencySymbol: String = "¥") {
     val isFood = title.contains("Food", ignoreCase = true)
     val bg = if (isFood) BentoLilacBg else BentoGreenBg
     val textDark = if (isFood) BentoLilacTextDark else BentoGreenTextDark
@@ -1361,7 +1363,7 @@ fun ObjectiveRow(title: String, obj: PriorityObjective, context: Context) {
                 }
             }
             Text(obj.name, fontSize = 14.sp, fontWeight = FontWeight.Black, color = textDark)
-            Text("${obj.type} • Est: ¥${obj.budget}", fontSize = 11.sp, color = textSubtle)
+            Text("${obj.type} • Est: $currencySymbol${obj.budget}", fontSize = 11.sp, color = textSubtle)
         }
         IconButton(
             onClick = { launchGoogleMaps(context, obj.query) },
@@ -2019,6 +2021,17 @@ fun BudgetScreen(viewModel: MainViewModel) {
                             color = BentoGreenTextDark,
                             fontFamily = FontFamily.Monospace
                         )
+                        val homeCode = trip?.homeCurrencyCode ?: ""
+                        val fxRate = trip?.exchangeRate ?: 0.0
+                        if (homeCode.isNotBlank() && fxRate > 0.0) {
+                            Text(
+                                text = "≈ ${currencySymbol(homeCode)}${String.format("%,.0f", totalSpent * fxRate)}",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BentoGreenTextSubtle,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
                     }
                 }
 
@@ -2278,7 +2291,7 @@ fun BudgetScreen(viewModel: MainViewModel) {
                     OutlinedTextField(
                         value = addAmount,
                         onValueChange = { addAmount = it },
-                        label = { Text("Amount (¥)", color = BentoTextSubtle) },
+                        label = { Text("Amount ($symbol)", color = BentoTextSubtle) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = BentoTextDark,
@@ -2931,6 +2944,8 @@ fun TripEditorDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     var travelers by remember(current.id) { mutableStateOf(current.travelerNames) }
     var budget by remember(current.id) { mutableStateOf(if (current.budgetAmount > 0) current.budgetAmount.toLong().toString() else "") }
     var currency by remember(current.id) { mutableStateOf(current.currencyCode) }
+    var homeCurrency by remember(current.id) { mutableStateOf(current.homeCurrencyCode) }
+    var rate by remember(current.id) { mutableStateOf(if (current.exchangeRate > 0) current.exchangeRate.toString() else "") }
 
     ThemedDialog(onDismissRequest = onDismiss) {
         Card(
@@ -2968,6 +2983,31 @@ fun TripEditorDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     }
                 }
 
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Convert to (home currency, optional)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BentoTextSubtle, modifier = Modifier.padding(bottom = 4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    (listOf("") + listOf("IDR", "USD", "EUR", "JPY", "GBP", "KRW", "THB")).forEach { code ->
+                        val selected = homeCurrency == code
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (selected) AccentBlueStrong else Color.Transparent)
+                                .border(1.dp, if (selected) AccentBlueStrong else BentoTextSubtle.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                                .clickable { homeCurrency = code }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(if (code.isEmpty()) "None" else code, color = if (selected) Color.White else BentoTextSubtle, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                if (homeCurrency.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TripField("Rate: 1 $currency = ? $homeCurrency", rate) { rate = it }
+                }
+
                 Spacer(modifier = Modifier.height(20.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDismiss) {
@@ -2984,7 +3024,9 @@ fun TripEditorDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                                     endDate = endDate,
                                     travelerNames = travelers,
                                     currencyCode = currency,
-                                    budgetAmount = budget.toDoubleOrNull() ?: current.budgetAmount
+                                    budgetAmount = budget.toDoubleOrNull() ?: current.budgetAmount,
+                                    homeCurrencyCode = homeCurrency,
+                                    exchangeRate = if (homeCurrency.isBlank()) 0.0 else (rate.toDoubleOrNull() ?: 0.0)
                                 )
                             )
                             onDismiss()

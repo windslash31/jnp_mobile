@@ -20,7 +20,10 @@ data class TripEntity(
     val endDate: String,
     val currencyCode: String,   // ISO 4217, e.g. "JPY", "IDR", "USD"
     val budgetAmount: Double,
-    val travelerNames: String
+    val travelerNames: String,
+    // Optional home-currency conversion (manual rate). homeAmount = amount * exchangeRate.
+    @ColumnInfo(defaultValue = "''") val homeCurrencyCode: String = "",
+    @ColumnInfo(defaultValue = "0") val exchangeRate: Double = 0.0
 )
 
 @Entity(tableName = "transactions")
@@ -140,7 +143,7 @@ interface ItineraryStepDao {
 
 @Database(
     entities = [TransactionEntity::class, ItineraryCheckEntity::class, FoodCheckEntity::class, StepEntity::class, TripEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -180,6 +183,15 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // v3 -> v4: add optional home-currency conversion columns (defaults match the
+        // @ColumnInfo defaults on TripEntity so Room's post-migration validation passes).
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `trips` ADD COLUMN `homeCurrencyCode` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `trips` ADD COLUMN `exchangeRate` REAL NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -187,7 +199,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "japan_mission_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .fallbackToDestructiveMigration() // safety net for unhandled version jumps
                     .build()
                 INSTANCE = instance
