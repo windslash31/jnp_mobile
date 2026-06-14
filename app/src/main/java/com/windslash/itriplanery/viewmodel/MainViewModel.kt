@@ -18,6 +18,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         // First launch: seed the persisted steps from the static itinerary and a default trip.
         viewModelScope.launch {
             repository.seedTripIfEmpty()
+            repository.seedDaysIfEmpty(ItineraryData.days)
             repository.seedStepsIfEmpty(ItineraryData.days)
         }
     }
@@ -29,6 +30,49 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateTrip(trip: TripEntity) {
         viewModelScope.launch { repository.updateTrip(trip) }
+    }
+
+    /** Serialize the active trip + its itinerary to portable JSON (for export/share). */
+    fun exportJson(): String? {
+        val trip = activeTrip.value ?: return null
+        return TripJson.toJson(buildTripExport(trip, itineraryDays.value))
+    }
+
+    /**
+     * Import a trip from portable JSON: overwrites the active trip's metadata and replaces
+     * its entire itinerary (days + steps). Returns false if the JSON is invalid / no active trip.
+     */
+    fun importJson(json: String): Boolean {
+        val env = TripJson.fromJson(json) ?: return false
+        val current = activeTrip.value ?: return false
+        viewModelScope.launch {
+            repository.updateTrip(
+                current.copy(
+                    name = env.trip.name,
+                    destination = env.trip.destination,
+                    startDate = env.trip.startDate,
+                    endDate = env.trip.endDate,
+                    currencyCode = env.trip.currencyCode,
+                    budgetAmount = env.trip.budgetAmount,
+                    travelerNames = env.trip.travelerNames
+                )
+            )
+            val metas = env.days.mapIndexed { i, d ->
+                DayMeta(date = d.date, day = "Day ${i + 1}", title = d.title, location = d.location, steps = 0)
+            }
+            val stepsByDay = env.days.mapIndexed { i, d ->
+                fun List<StepExport>.toEntities(period: String) = map {
+                    StepEntity(
+                        id = UUID.randomUUID().toString(), dayIndex = i, period = period,
+                        time = it.time, text = it.text, meta = it.meta, cost = it.cost,
+                        type = it.type, details = it.details, mapQuery = it.mapQuery
+                    )
+                }
+                d.morning.toEntities("morning") + d.afternoon.toEntities("afternoon") + d.evening.toEntities("evening")
+            }
+            repository.replaceItinerary(metas, stepsByDay)
+        }
+        return true
     }
 
     // --- User preferences (persisted via DataStore) ---
@@ -59,22 +103,27 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val allSteps: StateFlow<List<StepEntity>> = repository.allSteps
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    // Itinerary days = static day metadata (title/location/food/markers…) combined with
-    // the editable steps loaded from the database.
-    val itineraryDays: StateFlow<List<ItineraryDay>> = allSteps
-        .map { steps -> buildDays(steps) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ItineraryData.days)
+    // Day metadata, now persisted in the DB (not the static ItineraryData object).
+    private val allDays: StateFlow<List<DayMeta>> = repository.allDays
+        .stateIn(viewModelScope, SharingStarted.Eagerly, ItineraryData.days.map { it.toMeta() })
 
-    private fun buildDays(steps: List<StepEntity>): List<ItineraryDay> {
+    // Itinerary days = persisted day metadata combined with the editable steps from the DB.
+    val itineraryDays: StateFlow<List<ItineraryDay>> =
+        combine(allSteps, allDays) { steps, metas -> buildDays(steps, metas) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ItineraryData.days)
+
+    private fun buildDays(steps: List<StepEntity>, metas: List<DayMeta>): List<ItineraryDay> {
+        // Fall back to the static metadata on the very first frame before seeding emits.
+        val dayMetas = if (metas.isEmpty()) ItineraryData.days.map { it.toMeta() } else metas
         val byDay = steps.groupBy { it.dayIndex }
-        return ItineraryData.days.mapIndexed { dayIndex, day ->
+        return dayMetas.mapIndexed { dayIndex, meta ->
             val daySteps = byDay[dayIndex] ?: emptyList()
             fun period(p: String) = daySteps.filter { it.period == p }.sortedBy { it.time }.map { it.toStep() }
-            day.copy(
-                morning = period("morning"),
-                afternoon = period("afternoon"),
-                evening = period("evening"),
-                customAlts = period("alternative")
+            ItineraryDay(
+                date = meta.date, day = meta.day, title = meta.title, location = meta.location, steps = meta.steps,
+                morning = period("morning"), afternoon = period("afternoon"), evening = period("evening"),
+                food = meta.food, snack = meta.snack, alts = meta.alts,
+                customAlts = period("alternative"), markers = meta.markers
             )
         }
     }

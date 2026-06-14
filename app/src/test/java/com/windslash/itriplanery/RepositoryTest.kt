@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.windslash.itriplanery.data.AppDatabase
+import com.windslash.itriplanery.data.DayMeta
+import com.windslash.itriplanery.data.ItineraryData
 import com.windslash.itriplanery.data.JapanMissionRepository
 import com.windslash.itriplanery.data.StepEntity
 import com.windslash.itriplanery.data.TransactionEntity
@@ -85,5 +87,24 @@ class RepositoryTest {
 
         repo.deleteStep("s1")
         assertEquals(0, repo.allSteps.first().size)
+    }
+
+    @Test
+    fun replaceItinerarySwapsDaysAndSteps() = runTest {
+        // Seed the original itinerary + a stray step.
+        repo.seedDaysIfEmpty(ItineraryData.days)
+        repo.upsertStep(StepEntity("old", 0, "morning", "08:00", "Old step", "m", 0, "visit", null, null))
+
+        // Import replaces everything with a single new day + step.
+        val metas = listOf(DayMeta(date = "D1", day = "Day 1", title = "Imported Day", location = "Somewhere", steps = 0))
+        val steps = listOf(listOf(StepEntity("n1", 0, "morning", "09:00", "Imported step", "m", 0, "visit", null, null)))
+        repo.replaceItinerary(metas, steps)
+
+        val days = repo.allDays.first()
+        val allSteps = repo.allSteps.first()
+        assertEquals(1, days.size)
+        assertEquals("Imported Day", days[0].title)
+        assertEquals(1, allSteps.size)
+        assertEquals("Imported step", allSteps[0].text)
     }
 }
