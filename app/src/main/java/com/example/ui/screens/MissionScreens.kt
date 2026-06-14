@@ -180,6 +180,20 @@ fun currencySymbol(code: String): String = when (code.uppercase()) {
     else -> try { java.util.Currency.getInstance(code.uppercase()).symbol } catch (e: Exception) { code }
 }
 
+// --- THEMED DIALOG ---
+// A Compose Dialog runs in a separate composition that does NOT inherit our
+// LocalThemeMode, so dialogs render in light theme even in dark mode. This wrapper
+// captures the current theme in the parent scope and re-provides it inside the dialog.
+@Composable
+fun ThemedDialog(onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
+    val mode = LocalThemeMode.current
+    Dialog(onDismissRequest = onDismissRequest) {
+        androidx.compose.runtime.CompositionLocalProvider(LocalThemeMode provides mode) {
+            content()
+        }
+    }
+}
+
 // --- COMMONS: CATEGORY PILL FILTER ---
 @Composable
 fun CategoryPill(
@@ -610,7 +624,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
 
     // TACTICAL STRATEGY POPUP
     selectedIntelStep?.let { step ->
-        Dialog(onDismissRequest = { selectedIntelStep = null }) {
+        ThemedDialog(onDismissRequest = { selectedIntelStep = null }) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = BentoBackground),
                 shape = RoundedCornerShape(20.dp),
@@ -704,7 +718,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
             )
         }
 
-        Dialog(onDismissRequest = { pendingExpenseStep = null }) {
+        ThemedDialog(onDismissRequest = { pendingExpenseStep = null }) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = DeepBlueCard),
                 shape = RoundedCornerShape(20.dp),
@@ -718,12 +732,12 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         text = "Auto Expense Logger",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Black,
-                        color = Color.White
+                        color = BentoTextDark
                     )
                     Text(
                         text = "Would you like to record an expense for completing this objective?",
                         fontSize = 11.sp,
-                        color = Color.Gray,
+                        color = BentoTextSubtle,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -874,7 +888,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
         var newCost by remember { mutableStateOf(if (step.cost > 0) step.cost.toString() else "") }
         var newCategory by remember { mutableStateOf(step.type.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }) }
         
-        Dialog(onDismissRequest = { stepEditorState = null }) {
+        ThemedDialog(onDismissRequest = { stepEditorState = null }) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = BentoBackground),
                 shape = RoundedCornerShape(20.dp),
@@ -1282,7 +1296,7 @@ fun FootstepsIndicator(steps: Int) {
                 Icon(
                     imageVector = Icons.Filled.Star,
                     contentDescription = "",
-                    tint = if (i <= level) tintColor else Color.Gray.copy(alpha = 0.3f),
+                    tint = if (i <= level) tintColor else BentoTextSubtle.copy(alpha = 0.3f),
                     modifier = Modifier.size(10.dp)
                 )
             }
@@ -1384,8 +1398,14 @@ fun MapScreen(viewModel: MainViewModel) {
     }
 
     // HTML with Leaflet and map pins
+    val darkTheme = isDark
+    val mapBg = if (darkTheme) "#121212" else "#F7F9FF"
+    val tileUrl = if (darkTheme)
+        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    else
+        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
     val allSteps = day.morning + day.afternoon + day.evening + day.customAlts
-    val htmlContent = remember(activeDayIndex, day, markers, alts) {
+    val htmlContent = remember(activeDayIndex, day, markers, alts, darkTheme) {
         val markersArray = JSONArray()
         var seqId = 1
         allSteps.forEach { step ->
@@ -1429,9 +1449,9 @@ fun MapScreen(viewModel: MainViewModel) {
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
             <style>
-                body, html { margin:0; padding:0; height:100%; width:100%; background:#F7F9FF; overflow: hidden; }
+                body, html { margin:0; padding:0; height:100%; width:100%; background:$mapBg; overflow: hidden; }
                 #map { height: 100vh; width: 100vw; }
-                .leaflet-container { background: #F7F9FF; }
+                .leaflet-container { background: $mapBg; }
                 .station-icon { background: #D3E4FF; color: #001C38; border: 2px solid #005FB0; border-radius: 50%; width:24px; height:24px; text-align:center; line-height:24px; font-size:12px; font-weight:bold; }
                 .food-icon { background: #FAD8FD; color: #28132E; border: 2px solid #28132E; border-radius: 50%; width:24px; height:24px; text-align:center; line-height:24px; font-size:12px; font-weight:bold; }
                 .number-icon { background: #005FB0; color: white; border: 2px solid white; border-radius: 50%; width:24px; height:24px; text-align:center; line-height:24px; font-size:11px; font-weight:bold; }
@@ -1442,7 +1462,7 @@ fun MapScreen(viewModel: MainViewModel) {
             <div id="map"></div>
             <script>
                 var map = L.map('map', { zoomControl: false }).setView([35.6895, 139.6917], 13);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                L.tileLayer('$tileUrl', {
                     attribution: ''
                 }).addTo(map);
 
@@ -2213,7 +2233,7 @@ fun BudgetScreen(viewModel: MainViewModel) {
         var addAmount by remember { mutableStateOf("") }
         var addCategory by remember { mutableStateOf("Food") }
 
-        Dialog(onDismissRequest = { isAddModalOpen = false }) {
+        ThemedDialog(onDismissRequest = { isAddModalOpen = false }) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = DeepBlueCard),
                 shape = RoundedCornerShape(24.dp),
@@ -2824,7 +2844,7 @@ fun SettingsDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     val darkMode by viewModel.darkMode.collectAsStateWithLifecycle()
     val gamification by viewModel.gamificationEnabled.collectAsStateWithLifecycle()
 
-    Dialog(onDismissRequest = onDismiss) {
+    ThemedDialog(onDismissRequest = onDismiss) {
         Card(
             colors = CardDefaults.cardColors(containerColor = BentoBackground),
             shape = RoundedCornerShape(20.dp),
