@@ -1,4 +1,4 @@
-package com.example
+package com.windslash.itriplanery
 
 import org.junit.Assert.*
 import org.junit.Test

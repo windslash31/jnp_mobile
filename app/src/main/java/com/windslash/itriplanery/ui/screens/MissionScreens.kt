@@ -1,4 +1,4 @@
-package com.example.ui.screens
+package com.windslash.itriplanery.ui.screens
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -44,8 +45,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.data.*
-import com.example.viewmodel.MainViewModel
+import com.windslash.itriplanery.data.*
+import com.windslash.itriplanery.viewmodel.MainViewModel
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlinx.coroutines.launch
@@ -66,6 +67,16 @@ val ActivePurple: Color @Composable get() = if (isDark) Color(0xFF3B4B63) else C
 val AlertRed = Color(0xFFEF4444)
 val AccentAmber = Color(0xFFF59E0B)
 val GreenM3 = Color(0xFF10B981)
+
+// Strong accents for SOLID buttons/badges/icons that carry a white foreground.
+// These are FIXED (don't invert with the theme) so white text/icons stay readable in
+// both light and dark mode — unlike the Bento*TextDark colors, which flip to light in
+// dark mode and made white-on-them invisible.
+val AccentBlueStrong = Color(0xFF005FB0)
+val AccentGreenStrong = Color(0xFF1E7A4D)
+val AccentRedStrong = Color(0xFFB3261E)
+val AccentLilacStrong = Color(0xFF7E3FA0)
+val AccentGrayStrong = Color(0xFF4A4E57)
 
 // --- BENTO GRID DESIGN COLOR SCHEME ---
 val BentoBackground: Color @Composable get() = if (isDark) Color(0xFF121212) else Color(0xFFF7F9FF)
@@ -98,8 +109,9 @@ val BentoGrayTextSubtle: Color @Composable get() = if (isDark) Color(0xFFA0A5A9)
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MainTabApp(viewModel: MainViewModel) {
-    var themeMode by remember { mutableStateOf(ThemeMode.LIGHT) }
-    
+    val darkMode by viewModel.darkMode.collectAsStateWithLifecycle()
+    val themeMode = if (darkMode) ThemeMode.DARK else ThemeMode.LIGHT
+
     androidx.compose.runtime.CompositionLocalProvider(LocalThemeMode provides themeMode) {
         val activeTab by viewModel.activeTab.collectAsStateWithLifecycle()
 
@@ -135,9 +147,7 @@ fun MainTabApp(viewModel: MainViewModel) {
                             "map" -> MapScreen(viewModel)
                             "gourmet" -> GourmetScreen(viewModel)
                             "budget" -> BudgetScreen(viewModel)
-                            "guide" -> IntelScreen(viewModel, onThemeToggle = {
-                                themeMode = if (themeMode == ThemeMode.LIGHT) ThemeMode.DARK else ThemeMode.LIGHT
-                            })
+                            "guide" -> IntelScreen(viewModel)
                         }
                     }
                 }
@@ -166,6 +176,32 @@ fun launchGoogleMaps(context: Context, query: String) {
         }
     } catch (e: Exception) {
         Toast.makeText(context, "Could not open map", Toast.LENGTH_SHORT).show()
+    }
+}
+
+// --- COMMONS: CURRENCY SYMBOL FROM A TRIP'S ISO CODE ---
+fun currencySymbol(code: String): String = when (code.uppercase()) {
+    "JPY" -> "¥"
+    "IDR" -> "Rp"
+    "USD" -> "$"
+    "EUR" -> "€"
+    "GBP" -> "£"
+    "KRW" -> "₩"
+    "THB" -> "฿"
+    else -> try { java.util.Currency.getInstance(code.uppercase()).symbol } catch (e: Exception) { code }
+}
+
+// --- THEMED DIALOG ---
+// A Compose Dialog runs in a separate composition that does NOT inherit our
+// LocalThemeMode, so dialogs render in light theme even in dark mode. This wrapper
+// captures the current theme in the parent scope and re-provides it inside the dialog.
+@Composable
+fun ThemedDialog(onDismissRequest: () -> Unit, content: @Composable () -> Unit) {
+    val mode = LocalThemeMode.current
+    Dialog(onDismissRequest = onDismissRequest) {
+        androidx.compose.runtime.CompositionLocalProvider(LocalThemeMode provides mode) {
+            content()
+        }
     }
 }
 
@@ -212,34 +248,41 @@ fun ItineraryScreen(viewModel: MainViewModel) {
     val checks by viewModel.itineraryChecks.collectAsStateWithLifecycle()
     val progressPercent by viewModel.progressPercent.collectAsStateWithLifecycle()
     val itineraryDays by viewModel.itineraryDays.collectAsStateWithLifecycle()
+    val trip by viewModel.activeTrip.collectAsStateWithLifecycle()
+    val gamification by viewModel.gamificationEnabled.collectAsStateWithLifecycle()
+    val symbol = currencySymbol(trip?.currencyCode ?: "JPY")
     val context = LocalContext.current
 
-    val day = itineraryDays[selectedDayIndex]
+    val day = itineraryDays.getOrNull(selectedDayIndex) ?: itineraryDays.firstOrNull() ?: return
 
     var selectedIntelStep by remember { mutableStateOf<ItineraryStep?>(null) }
-    var pendingExpenseStep by remember { mutableStateOf<Pair<String, com.example.data.ItineraryStep>?>(null) }
-    var stepEditorState by remember { mutableStateOf<Triple<String, Int, com.example.data.ItineraryStep>?>(null) }
+    var pendingExpenseStep by remember { mutableStateOf<Pair<String, com.windslash.itriplanery.data.ItineraryStep>?>(null) }
+    var stepEditorState by remember { mutableStateOf<Triple<String, Int, com.windslash.itriplanery.data.ItineraryStep>?>(null) }
     var stepToDelete by remember { mutableStateOf<Pair<String, Int>?>(null) }
     
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Header rank determination
-    val rankText = when {
-        progressPercent == 100 -> "SHOGUN"
-        progressPercent >= 80 -> "SAMURAI"
-        progressPercent >= 60 -> "NINJA"
-        progressPercent >= 40 -> "VETERAN"
-        progressPercent >= 20 -> "SCOUT"
-        else -> "ROOKIE"
+    // Header rank determination (pure values memoized on progress)
+    val rankText = remember(progressPercent) {
+        when {
+            progressPercent == 100 -> "SHOGUN"
+            progressPercent >= 80 -> "SAMURAI"
+            progressPercent >= 60 -> "NINJA"
+            progressPercent >= 40 -> "VETERAN"
+            progressPercent >= 20 -> "SCOUT"
+            else -> "ROOKIE"
+        }
     }
-    val rankIcon = when {
-        progressPercent == 100 -> Icons.Filled.Star
-        progressPercent >= 80 -> Icons.Filled.Star
-        progressPercent >= 60 -> Icons.Filled.Info
-        progressPercent >= 40 -> Icons.Filled.Info
-        progressPercent >= 20 -> Icons.Filled.Search
-        else -> Icons.Filled.Star
+    val rankIcon = remember(progressPercent) {
+        when {
+            progressPercent == 100 -> Icons.Filled.Star
+            progressPercent >= 80 -> Icons.Filled.Star
+            progressPercent >= 60 -> Icons.Filled.Info
+            progressPercent >= 40 -> Icons.Filled.Info
+            progressPercent >= 20 -> Icons.Filled.Search
+            else -> Icons.Filled.Star
+        }
     }
     val rankColor = when {
         progressPercent >= 80 -> AccentAmber
@@ -263,20 +306,20 @@ fun ItineraryScreen(viewModel: MainViewModel) {
             ) {
                 Column {
                     Text(
-                        text = "Japan Itinerary",
+                        text = trip?.name ?: "Itinerary",
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         color = BentoTextSubtle
                     )
                     Text(
-                        text = "Tokyo, Shinjuku",
+                        text = trip?.destination ?: "",
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold,
                         color = BentoTextDark,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                     Text(
-                        text = "Travel Checklist: Jessi & Putra",
+                        text = "Travel Checklist: ${trip?.travelerNames ?: ""}",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Medium,
                         color = BentoTextSubtle,
@@ -330,23 +373,25 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                     
                     Spacer(modifier = Modifier.height(4.dp))
                     
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = rankIcon,
-                            contentDescription = "Rank Icon",
-                            tint = BentoBlueAccent,
-                            modifier = Modifier.size(12.dp)
-                        )
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text(
-                            text = rankText,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Black,
-                            color = BentoBlueAccent,
-                            letterSpacing = 0.5.sp
-                        )
+                    if (gamification) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = rankIcon,
+                                contentDescription = "Rank Icon",
+                                tint = BentoBlueAccent,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                text = rankText,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Black,
+                                color = BentoBlueAccent,
+                                letterSpacing = 0.5.sp
+                            )
+                        }
                     }
                 }
             }
@@ -450,7 +495,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                     )
 
                     // TIMELINE
-                    TimelineItemSection("Morning", day.morning, selectedDayIndex, "m", checks, context,
+                    TimelineItemSection("Morning", day.morning, selectedDayIndex, "m", checks, context, currencySymbol = symbol,
                         onCheckChanged = { key, isChecked, item ->
                             viewModel.toggleItineraryCheck(key, isChecked)
                             if (isChecked) {
@@ -464,12 +509,12 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         onRemoveClicked = { idx -> stepToDelete = Pair("morning", idx) }
                     )
                     TextButton(onClick = { 
-                        stepEditorState = Triple("morning", -1, com.example.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
+                        stepEditorState = Triple("morning", -1, com.windslash.itriplanery.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
                     }, modifier = Modifier.padding(bottom = 16.dp)) {
                         Text("+ Add Step", color = BentoBlueAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
 
-                    TimelineItemSection("Afternoon", day.afternoon, selectedDayIndex, "a", checks, context,
+                    TimelineItemSection("Afternoon", day.afternoon, selectedDayIndex, "a", checks, context, currencySymbol = symbol,
                         onCheckChanged = { key, isChecked, item ->
                             viewModel.toggleItineraryCheck(key, isChecked)
                             if (isChecked) {
@@ -481,12 +526,12 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         onRemoveClicked = { idx -> stepToDelete = Pair("afternoon", idx) }
                     )
                     TextButton(onClick = { 
-                        stepEditorState = Triple("afternoon", -1, com.example.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
+                        stepEditorState = Triple("afternoon", -1, com.windslash.itriplanery.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
                     }, modifier = Modifier.padding(bottom = 16.dp)) {
                         Text("+ Add Step", color = BentoBlueAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
 
-                    TimelineItemSection("Evening", day.evening, selectedDayIndex, "e", checks, context,
+                    TimelineItemSection("Evening", day.evening, selectedDayIndex, "e", checks, context, currencySymbol = symbol,
                         onCheckChanged = { key, isChecked, item ->
                             viewModel.toggleItineraryCheck(key, isChecked)
                             if (isChecked) {
@@ -498,12 +543,12 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         onRemoveClicked = { idx -> stepToDelete = Pair("evening", idx) }
                     )
                     TextButton(onClick = { 
-                        stepEditorState = Triple("evening", -1, com.example.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
+                        stepEditorState = Triple("evening", -1, com.windslash.itriplanery.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
                     }, modifier = Modifier.padding(bottom = 16.dp)) {
                         Text("+ Add Step", color = BentoBlueAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
 
-                    TimelineItemSection("Alternative", day.customAlts, selectedDayIndex, "alt", checks, context,
+                    TimelineItemSection("Alternative", day.customAlts, selectedDayIndex, "alt", checks, context, currencySymbol = symbol,
                         onCheckChanged = { key, isChecked, item ->
                             viewModel.toggleItineraryCheck(key, isChecked)
                             if (isChecked) {
@@ -515,7 +560,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         onRemoveClicked = { idx -> stepToDelete = Pair("alternative", idx) }
                     )
                     TextButton(onClick = { 
-                        stepEditorState = Triple("alternative", -1, com.example.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
+                        stepEditorState = Triple("alternative", -1, com.windslash.itriplanery.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
                     }, modifier = Modifier.padding(bottom = 16.dp)) {
                         Text("+ Add Alternative", color = BentoBlueAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
@@ -541,12 +586,12 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         )
 
                         if (day.food != null) {
-                            ObjectiveRow(title = "Target Alpha (Food)", obj = day.food, context = context)
+                            ObjectiveRow(title = "Target Alpha (Food)", obj = day.food, context = context, currencySymbol = symbol)
                         }
 
                         if (day.snack != null) {
                             Spacer(modifier = Modifier.height(12.dp))
-                            ObjectiveRow(title = "Target Bravo (Snack)", obj = day.snack, context = context)
+                            ObjectiveRow(title = "Target Bravo (Snack)", obj = day.snack, context = context, currencySymbol = symbol)
                         }
 
                         if (day.alts.isNotEmpty()) {
@@ -580,7 +625,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                                         onClick = { launchGoogleMaps(context, alt.query) },
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .background(BentoGrayTextDark, CircleShape)
+                                            .background(AccentGrayStrong, CircleShape)
                                     ) {
                                         Icon(Icons.Filled.LocationOn, contentDescription = "Navigate", tint = Color.White, modifier = Modifier.size(16.dp))
                                     }
@@ -595,7 +640,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
 
     // TACTICAL STRATEGY POPUP
     selectedIntelStep?.let { step ->
-        Dialog(onDismissRequest = { selectedIntelStep = null }) {
+        ThemedDialog(onDismissRequest = { selectedIntelStep = null }) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = BentoBackground),
                 shape = RoundedCornerShape(20.dp),
@@ -689,7 +734,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
             )
         }
 
-        Dialog(onDismissRequest = { pendingExpenseStep = null }) {
+        ThemedDialog(onDismissRequest = { pendingExpenseStep = null }) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = DeepBlueCard),
                 shape = RoundedCornerShape(20.dp),
@@ -703,12 +748,12 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         text = "Auto Expense Logger",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Black,
-                        color = Color.White
+                        color = BentoTextDark
                     )
                     Text(
                         text = "Would you like to record an expense for completing this objective?",
                         fontSize = 11.sp,
-                        color = Color.Gray,
+                        color = BentoTextSubtle,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -723,7 +768,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                     TextField(
                         value = expenseAmount,
                         onValueChange = { expenseAmount = it },
-                        label = { Text("Actual Cost (¥)", color = BentoTextSubtle) },
+                        label = { Text("Actual Cost ($symbol)", color = BentoTextSubtle) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth(),
                         colors = TextFieldDefaults.colors(
@@ -859,7 +904,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
         var newCost by remember { mutableStateOf(if (step.cost > 0) step.cost.toString() else "") }
         var newCategory by remember { mutableStateOf(step.type.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }) }
         
-        Dialog(onDismissRequest = { stepEditorState = null }) {
+        ThemedDialog(onDismissRequest = { stepEditorState = null }) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = BentoBackground),
                 shape = RoundedCornerShape(20.dp),
@@ -946,7 +991,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                     OutlinedTextField(
                         value = newCost,
                         onValueChange = { newCost = it },
-                        label = { Text("Estimated Cost (¥ - Optional)", color = BentoTextSubtle) },
+                        label = { Text("Estimated Cost ($symbol - Optional)", color = BentoTextSubtle) },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
                         singleLine = true,
@@ -996,7 +1041,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         Button(
                             onClick = {
                                 val costVal = newCost.toIntOrNull() ?: 0
-                                val step = com.example.data.ItineraryStep(
+                                val step = com.windslash.itriplanery.data.ItineraryStep(
                                     time = newTime,
                                     text = newTitle,
                                     meta = if (editorState.second >= 0) editorState.third.meta else "Added",
@@ -1038,8 +1083,9 @@ fun TimelineItemSection(
     sectionTag: String,
     checks: Map<String, Boolean>,
     context: Context,
+    currencySymbol: String = "¥",
     onCheckChanged: (String, Boolean, ItineraryStep) -> Unit,
-    onStrategyClicked: (com.example.data.ItineraryStep) -> Unit,
+    onStrategyClicked: (com.windslash.itriplanery.data.ItineraryStep) -> Unit,
     onEditClicked: ((Int) -> Unit)? = null,
     onRemoveClicked: ((Int) -> Unit)? = null
 ) {
@@ -1056,7 +1102,9 @@ fun TimelineItemSection(
         )
 
         items.forEachIndexed { i, item ->
-            val checkKey = "d$dayIndex-$sectionTag-$i"
+            // Prefer the step's stable id; fall back to positional key for any step
+            // without one (shouldn't happen once steps are loaded from the database).
+            val checkKey = item.id.ifEmpty { "d$dayIndex-$sectionTag-$i" }
             val isCompleted = checks[checkKey] == true
 
             @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -1169,7 +1217,7 @@ fun TimelineItemSection(
                                 )
                                 if (item.cost > 0) {
                                     Text(
-                                        text = "¥${item.cost}",
+                                        text = "$currencySymbol${item.cost}",
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = BentoTextSubtle,
@@ -1265,7 +1313,7 @@ fun FootstepsIndicator(steps: Int) {
                 Icon(
                     imageVector = Icons.Filled.Star,
                     contentDescription = "",
-                    tint = if (i <= level) tintColor else Color.Gray.copy(alpha = 0.3f),
+                    tint = if (i <= level) tintColor else BentoTextSubtle.copy(alpha = 0.3f),
                     modifier = Modifier.size(10.dp)
                 )
             }
@@ -1288,12 +1336,12 @@ fun FootstepsIndicator(steps: Int) {
 }
 
 @Composable
-fun ObjectiveRow(title: String, obj: PriorityObjective, context: Context) {
+fun ObjectiveRow(title: String, obj: PriorityObjective, context: Context, currencySymbol: String = "¥") {
     val isFood = title.contains("Food", ignoreCase = true)
     val bg = if (isFood) BentoLilacBg else BentoGreenBg
     val textDark = if (isFood) BentoLilacTextDark else BentoGreenTextDark
     val textSubtle = if (isFood) BentoLilacTextSubtle else BentoGreenTextSubtle
-    val buttonBg = if (isFood) BentoLilacTextDark else BentoGreenTextDark
+    val buttonBg = if (isFood) AccentLilacStrong else AccentGreenStrong
     val buttonTint = Color.White
 
     Row(
@@ -1320,7 +1368,7 @@ fun ObjectiveRow(title: String, obj: PriorityObjective, context: Context) {
                 }
             }
             Text(obj.name, fontSize = 14.sp, fontWeight = FontWeight.Black, color = textDark)
-            Text("${obj.type} • Est: ¥${obj.budget}", fontSize = 11.sp, color = textSubtle)
+            Text("${obj.type} • Est: $currencySymbol${obj.budget}", fontSize = 11.sp, color = textSubtle)
         }
         IconButton(
             onClick = { launchGoogleMaps(context, obj.query) },
@@ -1343,11 +1391,11 @@ fun MapScreen(viewModel: MainViewModel) {
     val context = LocalContext.current
     var recenterTrigger by remember { mutableStateOf(0) }
 
-    val day = itineraryDays[activeDayIndex]
+    val day = itineraryDays.getOrNull(activeDayIndex) ?: itineraryDays.firstOrNull() ?: return
     val markers = day.markers
     val alts = day.alts
 
-    var selectedMarker by remember { mutableStateOf<com.example.data.MapMarker?>(null) }
+    var selectedMarker by remember { mutableStateOf<com.windslash.itriplanery.data.MapMarker?>(null) }
     var webViewRef by remember { mutableStateOf<android.webkit.WebView?>(null) }
 
     LaunchedEffect(selectedMarker) {
@@ -1356,7 +1404,20 @@ fun MapScreen(viewModel: MainViewModel) {
         }
     }
 
-    // HTML with Leaflet and map pins
+    // Recenter the map to fit all pins when the refresh button is tapped.
+    LaunchedEffect(recenterTrigger) {
+        if (recenterTrigger > 0) {
+            webViewRef?.evaluateJavascript(
+                "if (typeof map !== 'undefined' && typeof bounds !== 'undefined' && bounds.length > 0) { try { map.fitBounds(bounds, {padding:[50,50]}); } catch(e){} }",
+                null
+            )
+        }
+    }
+
+    // HTML with Leaflet and map pins. Keep the map on readable light 'voyager' tiles even
+    // in dark mode — legibility matters more here than matching the dark chrome.
+    val mapBg = "#F7F9FF"
+    val tileUrl = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
     val allSteps = day.morning + day.afternoon + day.evening + day.customAlts
     val htmlContent = remember(activeDayIndex, day, markers, alts) {
         val markersArray = JSONArray()
@@ -1402,9 +1463,9 @@ fun MapScreen(viewModel: MainViewModel) {
             <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
             <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
             <style>
-                body, html { margin:0; padding:0; height:100%; width:100%; background:#F7F9FF; overflow: hidden; }
+                body, html { margin:0; padding:0; height:100%; width:100%; background:$mapBg; overflow: hidden; }
                 #map { height: 100vh; width: 100vw; }
-                .leaflet-container { background: #F7F9FF; }
+                .leaflet-container { background: $mapBg; }
                 .station-icon { background: #D3E4FF; color: #001C38; border: 2px solid #005FB0; border-radius: 50%; width:24px; height:24px; text-align:center; line-height:24px; font-size:12px; font-weight:bold; }
                 .food-icon { background: #FAD8FD; color: #28132E; border: 2px solid #28132E; border-radius: 50%; width:24px; height:24px; text-align:center; line-height:24px; font-size:12px; font-weight:bold; }
                 .number-icon { background: #005FB0; color: white; border: 2px solid white; border-radius: 50%; width:24px; height:24px; text-align:center; line-height:24px; font-size:11px; font-weight:bold; }
@@ -1415,7 +1476,7 @@ fun MapScreen(viewModel: MainViewModel) {
             <div id="map"></div>
             <script>
                 var map = L.map('map', { zoomControl: false }).setView([35.6895, 139.6917], 13);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                L.tileLayer('$tileUrl', {
                     attribution: ''
                 }).addTo(map);
 
@@ -1617,7 +1678,7 @@ fun MapScreen(viewModel: MainViewModel) {
                         modifier = Modifier.weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(markers) { pt ->
+                        items(markers, key = { it.title }) { pt ->
                             val isItemActive = selectedMarker == pt
                             Card(
                                 modifier = Modifier
@@ -1814,7 +1875,7 @@ fun GourmetScreen(viewModel: MainViewModel) {
                                 letterSpacing = 0.5.sp
                             )
                         }
-                        items(filteredItems) { item ->
+                        items(filteredItems, key = { it.id }) { item ->
                             val isChecked = foodChecks[item.id] == true
                             Card(
                                 colors = CardDefaults.cardColors(containerColor = DeepBlueCard),
@@ -1864,7 +1925,7 @@ fun GourmetScreen(viewModel: MainViewModel) {
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Box(
                                                     modifier = Modifier
-                                                        .background(BentoLilacTextDark, RoundedCornerShape(4.dp))
+                                                        .background(AccentLilacStrong, RoundedCornerShape(4.dp))
                                                         .padding(horizontal = 5.dp, vertical = 2.dp)
                                                 ) {
                                                     Text("MUST", fontSize = 7.sp, fontWeight = FontWeight.Black, color = Color.White)
@@ -1888,7 +1949,7 @@ fun GourmetScreen(viewModel: MainViewModel) {
                                         onClick = { launchGoogleMaps(context, item.name + " " + item.area) },
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .background(BentoLilacTextDark, CircleShape)
+                                            .background(AccentLilacStrong, CircleShape)
                                     ) {
                                         Icon(Icons.Filled.LocationOn, "Go", tint = Color.White, modifier = Modifier.size(16.dp))
                                     }
@@ -1906,11 +1967,13 @@ fun GourmetScreen(viewModel: MainViewModel) {
 @Composable
 fun BudgetScreen(viewModel: MainViewModel) {
     val txs by viewModel.transactions.collectAsStateWithLifecycle()
+    val trip by viewModel.activeTrip.collectAsStateWithLifecycle()
     var isAddModalOpen by remember { mutableStateOf(false) }
 
+    val symbol = currencySymbol(trip?.currencyCode ?: "JPY")
     val totalSpent = txs.sumOf { it.amount }
-    val budgetEstimate = 150000.0
-    val fractionSpent = (totalSpent / budgetEstimate).coerceIn(0.0, 1.0).toFloat()
+    val budgetEstimate = trip?.budgetAmount ?: 150000.0
+    val fractionSpent = if (budgetEstimate <= 0.0) 0f else (totalSpent / budgetEstimate).coerceIn(0.0, 1.0).toFloat()
     val percentSpentText = (fractionSpent * 100).toInt()
 
     val catTotals = remember(txs) {
@@ -1957,12 +2020,23 @@ fun BudgetScreen(viewModel: MainViewModel) {
                             color = BentoGreenTextSubtle
                         )
                         Text(
-                            text = "¥${String.format("%,.0f", totalSpent)}",
+                            text = "$symbol${String.format("%,.0f", totalSpent)}",
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Black,
                             color = BentoGreenTextDark,
                             fontFamily = FontFamily.Monospace
                         )
+                        val homeCode = trip?.homeCurrencyCode ?: ""
+                        val fxRate = trip?.exchangeRate ?: 0.0
+                        if (homeCode.isNotBlank() && fxRate > 0.0) {
+                            Text(
+                                text = "≈ ${currencySymbol(homeCode)}${String.format("%,.0f", totalSpent * fxRate)}",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = BentoGreenTextSubtle,
+                                fontFamily = FontFamily.Monospace
+                            )
+                        }
                     }
                 }
 
@@ -1989,9 +2063,9 @@ fun BudgetScreen(viewModel: MainViewModel) {
                         .padding(top = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("¥0", color = BentoTextSubtle, fontSize = 10.sp)
-                    Text("$percentSpentText% of ¥150k Estimate Limit", color = BentoGreenTextDark, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                    Text("¥150k", color = BentoTextSubtle, fontSize = 10.sp)
+                    Text("${symbol}0", color = BentoTextSubtle, fontSize = 10.sp)
+                    Text("$percentSpentText% of $symbol${String.format("%,.0f", budgetEstimate)} Limit", color = BentoGreenTextDark, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("$symbol${String.format("%,.0f", budgetEstimate)}", color = BentoTextSubtle, fontSize = 10.sp)
                 }
             }
         }
@@ -2032,7 +2106,7 @@ fun BudgetScreen(viewModel: MainViewModel) {
                                 )
                                 Text(cat, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = BentoTextSubtle, modifier = Modifier.padding(top = 2.dp))
                                 Text(
-                                    text = "¥${String.format("%,.0f", total)}",
+                                    text = "$symbol${String.format("%,.0f", total)}",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Black,
                                     color = BentoTextDark,
@@ -2143,7 +2217,7 @@ fun BudgetScreen(viewModel: MainViewModel) {
                                     }
 
                                     Text(
-                                        text = "¥${String.format("%,.0f", t.amount)}",
+                                        text = "$symbol${String.format("%,.0f", t.amount)}",
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Black,
                                         color = BentoGreenTextDark,
@@ -2167,7 +2241,7 @@ fun BudgetScreen(viewModel: MainViewModel) {
     ) {
         FloatingActionButton(
             onClick = { isAddModalOpen = true },
-            containerColor = BentoGreenTextDark,
+            containerColor = AccentGreenStrong,
             shape = CircleShape,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -2184,7 +2258,7 @@ fun BudgetScreen(viewModel: MainViewModel) {
         var addAmount by remember { mutableStateOf("") }
         var addCategory by remember { mutableStateOf("Food") }
 
-        Dialog(onDismissRequest = { isAddModalOpen = false }) {
+        ThemedDialog(onDismissRequest = { isAddModalOpen = false }) {
             Card(
                 colors = CardDefaults.cardColors(containerColor = DeepBlueCard),
                 shape = RoundedCornerShape(24.dp),
@@ -2222,7 +2296,7 @@ fun BudgetScreen(viewModel: MainViewModel) {
                     OutlinedTextField(
                         value = addAmount,
                         onValueChange = { addAmount = it },
-                        label = { Text("Amount (¥)", color = BentoTextSubtle) },
+                        label = { Text("Amount ($symbol)", color = BentoTextSubtle) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = BentoTextDark,
@@ -2293,7 +2367,7 @@ fun BudgetScreen(viewModel: MainViewModel) {
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = BentoGreenTextDark)
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentGreenStrong)
                         ) {
                             Text("Save", color = Color.White, fontWeight = FontWeight.Black)
                         }
@@ -2331,11 +2405,24 @@ fun parseHtmlToAnnotatedString(html: String): AnnotatedString {
 
 // --- 5. INTEL SCREEN ("guide") ---
 @Composable
-fun IntelScreen(viewModel: MainViewModel, onThemeToggle: (() -> Unit)? = null) {
+fun IntelScreen(viewModel: MainViewModel) {
     var subTab by remember { mutableStateOf("bookings") }
     var selectedLangCat by remember { mutableStateOf("All") }
+    var showSettings by remember { mutableStateOf(false) }
+    var showTripEditor by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
+
+    if (showSettings) {
+        SettingsDialog(
+            viewModel = viewModel,
+            onDismiss = { showSettings = false },
+            onEditTrip = { showSettings = false; showTripEditor = true }
+        )
+    }
+    if (showTripEditor) {
+        TripEditorDialog(viewModel = viewModel, onDismiss = { showTripEditor = false })
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         // TOP BANNER (BENTO COMPACT OFF-WHITE STYLE)
@@ -2363,10 +2450,10 @@ fun IntelScreen(viewModel: MainViewModel, onThemeToggle: (() -> Unit)? = null) {
                         color = BentoTextSubtle
                     )
                 }
-                androidx.compose.material3.IconButton(onClick = { onThemeToggle?.invoke() }) {
+                androidx.compose.material3.IconButton(onClick = { showSettings = true }) {
                     Icon(
-                        if (isDark) Icons.Filled.Info else Icons.Filled.Settings,
-                        contentDescription = "Toggle Theme",
+                        Icons.Filled.Settings,
+                        contentDescription = "Settings",
                         tint = BentoBlueAccent,
                         modifier = Modifier.size(28.dp)
                     )
@@ -2501,7 +2588,7 @@ fun IntelScreen(viewModel: MainViewModel, onThemeToggle: (() -> Unit)? = null) {
                                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(target.link))
                                         context.startActivity(intent)
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = BentoRedTextDark),
+                                    colors = ButtonDefaults.buttonColors(containerColor = AccentRedStrong),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text("LOCK BOOKING SITE", color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
@@ -2586,7 +2673,7 @@ fun IntelScreen(viewModel: MainViewModel, onThemeToggle: (() -> Unit)? = null) {
                                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(target.link))
                                             context.startActivity(intent)
                                         },
-                                        colors = ButtonDefaults.buttonColors(containerColor = BentoBlueTextDark),
+                                        colors = ButtonDefaults.buttonColors(containerColor = AccentBlueStrong),
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Text("BOOK VIA TABLECHECK", color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
@@ -2637,7 +2724,7 @@ fun IntelScreen(viewModel: MainViewModel, onThemeToggle: (() -> Unit)? = null) {
                                     clipboard.setText(AnnotatedString(TipsData.conciergeScript))
                                     Toast.makeText(context, "Copy successful", Toast.LENGTH_SHORT).show()
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = BentoBlueTextDark),
+                                colors = ButtonDefaults.buttonColors(containerColor = AccentBlueStrong),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -2784,6 +2871,203 @@ fun IntelScreen(viewModel: MainViewModel, onThemeToggle: (() -> Unit)? = null) {
     }
 }
 
+// --- SETTINGS DIALOG ---
+@Composable
+fun SettingsDialog(viewModel: MainViewModel, onDismiss: () -> Unit, onEditTrip: () -> Unit) {
+    val darkMode by viewModel.darkMode.collectAsStateWithLifecycle()
+    val gamification by viewModel.gamificationEnabled.collectAsStateWithLifecycle()
+
+    ThemedDialog(onDismissRequest = onDismiss) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = BentoBackground),
+            shape = RoundedCornerShape(20.dp),
+            border = BorderStroke(1.dp, BentoTextSubtle.copy(alpha = 0.15f)),
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Settings", fontSize = 18.sp, fontWeight = FontWeight.Black, color = BentoTextDark)
+                    IconButton(onClick = onDismiss) {
+                        Icon(Icons.Filled.Close, contentDescription = "Close", tint = BentoTextSubtle)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                SettingToggleRow("Dark mode", "Use a dark theme (saved across launches)", darkMode) { viewModel.setDarkMode(it) }
+                Spacer(modifier = Modifier.height(4.dp))
+                SettingToggleRow("Tactical rank", "Show the Rookie → Shogun progression", gamification) { viewModel.setGamificationEnabled(it) }
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onEditTrip,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentBlueStrong)
+                ) {
+                    Icon(Icons.Filled.Edit, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Edit trip details", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingToggleRow(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+            Text(title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = BentoTextDark)
+            Text(subtitle, fontSize = 11.sp, color = BentoTextSubtle)
+        }
+        Switch(
+            checked = checked,
+            onCheckedChange = onChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = BentoBlueAccent
+            )
+        )
+    }
+}
+
+// --- TRIP EDITOR ---
+@Composable
+fun TripEditorDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
+    val trip by viewModel.activeTrip.collectAsStateWithLifecycle()
+    val current = trip ?: return
+
+    var name by remember(current.id) { mutableStateOf(current.name) }
+    var destination by remember(current.id) { mutableStateOf(current.destination) }
+    var startDate by remember(current.id) { mutableStateOf(current.startDate) }
+    var endDate by remember(current.id) { mutableStateOf(current.endDate) }
+    var travelers by remember(current.id) { mutableStateOf(current.travelerNames) }
+    var budget by remember(current.id) { mutableStateOf(if (current.budgetAmount > 0) current.budgetAmount.toLong().toString() else "") }
+    var currency by remember(current.id) { mutableStateOf(current.currencyCode) }
+    var homeCurrency by remember(current.id) { mutableStateOf(current.homeCurrencyCode) }
+    var rate by remember(current.id) { mutableStateOf(if (current.exchangeRate > 0) current.exchangeRate.toString() else "") }
+
+    ThemedDialog(onDismissRequest = onDismiss) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = BentoBackground),
+            shape = RoundedCornerShape(20.dp),
+            border = BorderStroke(1.dp, BentoTextSubtle.copy(alpha = 0.15f)),
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
+                Text("Edit Trip", fontSize = 18.sp, fontWeight = FontWeight.Black, color = BentoTextDark, modifier = Modifier.padding(bottom = 12.dp))
+                TripField("Trip name", name) { name = it }
+                TripField("Destination", destination) { destination = it }
+                TripField("Start date", startDate) { startDate = it }
+                TripField("End date", endDate) { endDate = it }
+                TripField("Traveler names", travelers) { travelers = it }
+                TripField("Budget", budget, numeric = true) { v -> budget = v.filter { it.isDigit() } }
+
+                Text("Currency", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BentoTextSubtle, modifier = Modifier.padding(top = 4.dp, bottom = 4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf("JPY", "IDR", "USD", "EUR", "GBP", "KRW", "THB").forEach { code ->
+                        val selected = currency == code
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (selected) AccentBlueStrong else Color.Transparent)
+                                .border(1.dp, if (selected) AccentBlueStrong else BentoTextSubtle.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                                .clickable { currency = code }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(code, color = if (selected) Color.White else BentoTextSubtle, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("Convert to (home currency, optional)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BentoTextSubtle, modifier = Modifier.padding(bottom = 4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    (listOf("") + listOf("IDR", "USD", "EUR", "JPY", "GBP", "KRW", "THB")).forEach { code ->
+                        val selected = homeCurrency == code
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (selected) AccentBlueStrong else Color.Transparent)
+                                .border(1.dp, if (selected) AccentBlueStrong else BentoTextSubtle.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                                .clickable { homeCurrency = code }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(if (code.isEmpty()) "None" else code, color = if (selected) Color.White else BentoTextSubtle, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+                if (homeCurrency.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TripField("Rate: 1 $currency = ? $homeCurrency", rate) { rate = it }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel", color = BentoTextSubtle, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            viewModel.updateTrip(
+                                current.copy(
+                                    name = name.ifBlank { current.name },
+                                    destination = destination,
+                                    startDate = startDate,
+                                    endDate = endDate,
+                                    travelerNames = travelers,
+                                    currencyCode = currency,
+                                    budgetAmount = budget.toDoubleOrNull() ?: current.budgetAmount,
+                                    homeCurrencyCode = homeCurrency,
+                                    exchangeRate = if (homeCurrency.isBlank()) 0.0 else (rate.toDoubleOrNull() ?: 0.0)
+                                )
+                            )
+                            onDismiss()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentBlueStrong),
+                        enabled = name.isNotBlank()
+                    ) {
+                        Text("Save", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TripField(label: String, value: String, numeric: Boolean = false, onChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onChange,
+        label = { Text(label, color = BentoTextSubtle) },
+        singleLine = true,
+        keyboardOptions = if (numeric) KeyboardOptions(keyboardType = KeyboardType.Number) else KeyboardOptions.Default,
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = BentoTextDark,
+            unfocusedTextColor = BentoTextDark,
+            focusedBorderColor = BentoBlueAccent,
+            unfocusedBorderColor = BentoTextSubtle.copy(alpha = 0.2f),
+            focusedContainerColor = DeepBlueCard,
+            unfocusedContainerColor = DeepBlueCard,
+            cursorColor = BentoBlueAccent
+        )
+    )
+}
+
 // --- BOTTOM NAVIGATION BAR ---
 @Composable
 fun BottomNavigation(
@@ -2800,7 +3084,7 @@ fun BottomNavigation(
             selected = activeTab == "plan",
             onClick = { onTabSelected("plan") },
             label = { Text("Plan", fontSize = 10.sp, fontWeight = FontWeight.Bold) },
-            icon = { Icon(Icons.Filled.List, contentDescription = "Plan") },
+            icon = { Icon(Icons.AutoMirrored.Filled.List, contentDescription = "Plan") },
             colors = NavigationBarItemDefaults.colors(
                 selectedIconColor = BentoBlueAccent,
                 selectedTextColor = BentoBlueAccent,

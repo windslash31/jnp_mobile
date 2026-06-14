@@ -1,4 +1,4 @@
-package com.example.data
+package com.windslash.itriplanery.data
 
 data class ItineraryStep(
     val time: String,
@@ -7,7 +7,8 @@ data class ItineraryStep(
     val cost: Int,
     val type: String, // "food", "transit", "visit", "shopping", "other"
     val details: String? = null,
-    val mapQuery: String? = null
+    val mapQuery: String? = null,
+    val id: String = "" // stable id when loaded from the database; used as the checklist key
 )
 
 data class PriorityObjective(

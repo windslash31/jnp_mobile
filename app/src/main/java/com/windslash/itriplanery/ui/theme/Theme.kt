@@ -1,4 +1,4 @@
-package com.example.ui.theme
+package com.windslash.itriplanery.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
