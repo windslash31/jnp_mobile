@@ -1,0 +1,6 @@
+{
+  "name": "Japan Mission",
+  "description": "Tactical travel companion for Japan with itineraries, maps, gourmet tracker, reservation guide, and secure offline wallet auditor.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
