@@ -2391,11 +2391,19 @@ fun IntelScreen(viewModel: MainViewModel) {
     var subTab by remember { mutableStateOf("bookings") }
     var selectedLangCat by remember { mutableStateOf("All") }
     var showSettings by remember { mutableStateOf(false) }
+    var showTripEditor by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
 
     if (showSettings) {
-        SettingsDialog(viewModel = viewModel, onDismiss = { showSettings = false })
+        SettingsDialog(
+            viewModel = viewModel,
+            onDismiss = { showSettings = false },
+            onEditTrip = { showSettings = false; showTripEditor = true }
+        )
+    }
+    if (showTripEditor) {
+        TripEditorDialog(viewModel = viewModel, onDismiss = { showTripEditor = false })
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
@@ -2847,7 +2855,7 @@ fun IntelScreen(viewModel: MainViewModel) {
 
 // --- SETTINGS DIALOG ---
 @Composable
-fun SettingsDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
+fun SettingsDialog(viewModel: MainViewModel, onDismiss: () -> Unit, onEditTrip: () -> Unit) {
     val darkMode by viewModel.darkMode.collectAsStateWithLifecycle()
     val gamification by viewModel.gamificationEnabled.collectAsStateWithLifecycle()
 
@@ -2873,6 +2881,16 @@ fun SettingsDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                 SettingToggleRow("Dark mode", "Use a dark theme (saved across launches)", darkMode) { viewModel.setDarkMode(it) }
                 Spacer(modifier = Modifier.height(4.dp))
                 SettingToggleRow("Tactical rank", "Show the Rookie → Shogun progression", gamification) { viewModel.setGamificationEnabled(it) }
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(
+                    onClick = onEditTrip,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentBlueStrong)
+                ) {
+                    Icon(Icons.Filled.Edit, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Edit trip details", color = Color.White, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }
@@ -2898,6 +2916,109 @@ private fun SettingToggleRow(title: String, subtitle: String, checked: Boolean, 
             )
         )
     }
+}
+
+// --- TRIP EDITOR ---
+@Composable
+fun TripEditorDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
+    val trip by viewModel.activeTrip.collectAsStateWithLifecycle()
+    val current = trip ?: return
+
+    var name by remember(current.id) { mutableStateOf(current.name) }
+    var destination by remember(current.id) { mutableStateOf(current.destination) }
+    var startDate by remember(current.id) { mutableStateOf(current.startDate) }
+    var endDate by remember(current.id) { mutableStateOf(current.endDate) }
+    var travelers by remember(current.id) { mutableStateOf(current.travelerNames) }
+    var budget by remember(current.id) { mutableStateOf(if (current.budgetAmount > 0) current.budgetAmount.toLong().toString() else "") }
+    var currency by remember(current.id) { mutableStateOf(current.currencyCode) }
+
+    ThemedDialog(onDismissRequest = onDismiss) {
+        Card(
+            colors = CardDefaults.cardColors(containerColor = BentoBackground),
+            shape = RoundedCornerShape(20.dp),
+            border = BorderStroke(1.dp, BentoTextSubtle.copy(alpha = 0.15f)),
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        ) {
+            Column(modifier = Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
+                Text("Edit Trip", fontSize = 18.sp, fontWeight = FontWeight.Black, color = BentoTextDark, modifier = Modifier.padding(bottom = 12.dp))
+                TripField("Trip name", name) { name = it }
+                TripField("Destination", destination) { destination = it }
+                TripField("Start date", startDate) { startDate = it }
+                TripField("End date", endDate) { endDate = it }
+                TripField("Traveler names", travelers) { travelers = it }
+                TripField("Budget", budget, numeric = true) { v -> budget = v.filter { it.isDigit() } }
+
+                Text("Currency", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = BentoTextSubtle, modifier = Modifier.padding(top = 4.dp, bottom = 4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    listOf("JPY", "IDR", "USD", "EUR", "GBP", "KRW", "THB").forEach { code ->
+                        val selected = currency == code
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (selected) AccentBlueStrong else Color.Transparent)
+                                .border(1.dp, if (selected) AccentBlueStrong else BentoTextSubtle.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                                .clickable { currency = code }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(code, color = if (selected) Color.White else BentoTextSubtle, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDismiss) {
+                        Text("Cancel", color = BentoTextSubtle, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = {
+                            viewModel.updateTrip(
+                                current.copy(
+                                    name = name.ifBlank { current.name },
+                                    destination = destination,
+                                    startDate = startDate,
+                                    endDate = endDate,
+                                    travelerNames = travelers,
+                                    currencyCode = currency,
+                                    budgetAmount = budget.toDoubleOrNull() ?: current.budgetAmount
+                                )
+                            )
+                            onDismiss()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentBlueStrong),
+                        enabled = name.isNotBlank()
+                    ) {
+                        Text("Save", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TripField(label: String, value: String, numeric: Boolean = false, onChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onChange,
+        label = { Text(label, color = BentoTextSubtle) },
+        singleLine = true,
+        keyboardOptions = if (numeric) KeyboardOptions(keyboardType = KeyboardType.Number) else KeyboardOptions.Default,
+        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = BentoTextDark,
+            unfocusedTextColor = BentoTextDark,
+            focusedBorderColor = BentoBlueAccent,
+            unfocusedBorderColor = BentoTextSubtle.copy(alpha = 0.2f),
+            focusedContainerColor = DeepBlueCard,
+            unfocusedContainerColor = DeepBlueCard,
+            cursorColor = BentoBlueAccent
+        )
+    )
 }
 
 // --- BOTTOM NAVIGATION BAR ---
