@@ -9,6 +9,20 @@ import java.util.UUID
 
 // --- ENTITIES ---
 
+// Top-level container for a trip. Everything else will hang off this so the app can
+// support any destination/currency/budget instead of being hardcoded to Japan.
+@Entity(tableName = "trips")
+data class TripEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val name: String,
+    val destination: String,
+    val startDate: String,
+    val endDate: String,
+    val currencyCode: String,   // ISO 4217, e.g. "JPY", "IDR", "USD"
+    val budgetAmount: Double,
+    val travelerNames: String
+)
+
 @Entity(tableName = "transactions")
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -90,6 +104,21 @@ interface FoodCheckDao {
 }
 
 @Dao
+interface TripDao {
+    @Query("SELECT * FROM trips ORDER BY id LIMIT 1")
+    fun getActiveTrip(): Flow<TripEntity?>
+
+    @Query("SELECT COUNT(*) FROM trips")
+    suspend fun count(): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(trip: TripEntity)
+
+    @Update
+    suspend fun update(trip: TripEntity)
+}
+
+@Dao
 interface ItineraryStepDao {
     @Query("SELECT * FROM itinerary_steps")
     fun getAllSteps(): Flow<List<StepEntity>>
@@ -110,8 +139,8 @@ interface ItineraryStepDao {
 // --- DATABASE ---
 
 @Database(
-    entities = [TransactionEntity::class, ItineraryCheckEntity::class, FoodCheckEntity::class, StepEntity::class],
-    version = 2,
+    entities = [TransactionEntity::class, ItineraryCheckEntity::class, FoodCheckEntity::class, StepEntity::class, TripEntity::class],
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -119,6 +148,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun itineraryCheckDao(): ItineraryCheckDao
     abstract fun foodCheckDao(): FoodCheckDao
     abstract fun itineraryStepDao(): ItineraryStepDao
+    abstract fun tripDao(): TripDao
 
     companion object {
         @Volatile
@@ -137,6 +167,19 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // v2 -> v3: add the trips table (seeded at runtime via seedTripIfEmpty). SQL matches
+        // Room's generated schema for TripEntity so post-migration validation passes.
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `trips` (" +
+                        "`id` INTEGER PRIMARY KEY AUTOINCREMENT, `name` TEXT NOT NULL, " +
+                        "`destination` TEXT NOT NULL, `startDate` TEXT NOT NULL, `endDate` TEXT NOT NULL, " +
+                        "`currencyCode` TEXT NOT NULL, `budgetAmount` REAL NOT NULL, `travelerNames` TEXT NOT NULL)"
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -144,7 +187,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "japan_mission_database"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .fallbackToDestructiveMigration() // safety net for unhandled version jumps
                     .build()
                 INSTANCE = instance
@@ -161,6 +204,7 @@ class JapanMissionRepository(private val db: AppDatabase) {
     val allItineraryChecks: Flow<List<ItineraryCheckEntity>> = db.itineraryCheckDao().getAllChecks()
     val allFoodChecks: Flow<List<FoodCheckEntity>> = db.foodCheckDao().getAllFoodChecks()
     val allSteps: Flow<List<StepEntity>> = db.itineraryStepDao().getAllSteps()
+    val activeTrip: Flow<TripEntity?> = db.tripDao().getActiveTrip()
 
     suspend fun insertTransaction(tx: TransactionEntity) {
         db.transactionDao().insertTransaction(tx)
@@ -176,6 +220,27 @@ class JapanMissionRepository(private val db: AppDatabase) {
 
     suspend fun toggleFoodCheck(itemId: String, completed: Boolean) {
         db.foodCheckDao().insertFoodCheck(FoodCheckEntity(itemId, completed))
+    }
+
+    // --- Trip ---
+    suspend fun updateTrip(trip: TripEntity) = db.tripDao().update(trip)
+
+    // Seed a single default trip on first run, using the values that used to be hardcoded
+    // in the UI. Once the multi-trip UI exists this becomes "create trip".
+    suspend fun seedTripIfEmpty() {
+        val dao = db.tripDao()
+        if (dao.count() > 0) return
+        dao.upsert(
+            TripEntity(
+                name = "Japan Mission",
+                destination = "Tokyo, Shinjuku",
+                startDate = "Oct 9",
+                endDate = "Oct 19",
+                currencyCode = "JPY",
+                budgetAmount = 150000.0,
+                travelerNames = "Jessi & Putra"
+            )
+        )
     }
 
     // --- Itinerary steps ---

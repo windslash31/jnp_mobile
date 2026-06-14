@@ -14,8 +14,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         val database = AppDatabase.getDatabase(application)
         repository = JapanMissionRepository(database)
-        // First launch: seed the persisted steps from the static itinerary.
-        viewModelScope.launch { repository.seedStepsIfEmpty(ItineraryData.days) }
+        // First launch: seed the persisted steps from the static itinerary and a default trip.
+        viewModelScope.launch {
+            repository.seedTripIfEmpty()
+            repository.seedStepsIfEmpty(ItineraryData.days)
+        }
+    }
+
+    // The active trip drives destination/budget/currency/traveler names (replaces the
+    // hardcoded UI values). Null until seeding completes on first launch.
+    val activeTrip: StateFlow<TripEntity?> = repository.activeTrip
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    fun updateTrip(trip: TripEntity) {
+        viewModelScope.launch { repository.updateTrip(trip) }
     }
 
     // Active screen tab state

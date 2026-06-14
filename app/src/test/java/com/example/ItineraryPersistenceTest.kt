@@ -83,4 +83,29 @@ class ItineraryPersistenceTest {
         assertEquals("Only the one custom step should be added; no re-seed", seededCount + 1, afterCount)
         assertTrue("Custom step should persist", steps.any { it.text == "Late ramen" })
     }
+
+    @Test
+    fun defaultTripSeedsOnceAndPersists() = runTest {
+        // Session 1: seed the default trip, then edit it.
+        val db1 = openDb()
+        val repo1 = JapanMissionRepository(db1)
+        repo1.seedTripIfEmpty()
+        val seeded = db1.tripDao().getActiveTrip().first()
+        assertEquals("Tokyo, Shinjuku", seeded?.destination)
+        assertEquals("JPY", seeded?.currencyCode)
+        repo1.updateTrip(seeded!!.copy(destination = "Kyoto", currencyCode = "USD"))
+        db1.close()
+
+        // Session 2: reopen — the edit persists and re-seeding is a no-op (count stays 1).
+        val db2 = openDb()
+        val repo2 = JapanMissionRepository(db2)
+        repo2.seedTripIfEmpty()
+        val trip = db2.tripDao().getActiveTrip().first()
+        val tripCount = db2.tripDao().count()
+        db2.close()
+
+        assertEquals(1, tripCount)
+        assertEquals("Kyoto", trip?.destination)
+        assertEquals("USD", trip?.currencyCode)
+    }
 }
