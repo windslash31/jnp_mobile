@@ -1,4 +1,4 @@
-package com.example
+package com.windslash.itriplanery
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import com.example.ui.screens.MainTabApp
-import com.example.ui.theme.MyApplicationTheme
-import com.example.viewmodel.MainViewModel
+import com.windslash.itriplanery.ui.screens.MainTabApp
+import com.windslash.itriplanery.ui.theme.MyApplicationTheme
+import com.windslash.itriplanery.viewmodel.MainViewModel
 
 class MainActivity : ComponentActivity() {
   private val viewModel: MainViewModel by viewModels()

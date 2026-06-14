@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-  namespace = "com.example"
+  namespace = "com.windslash.itriplanery"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
   defaultConfig {
-    applicationId = "com.aistudio.japantrip.qwxpt"
+    applicationId = "com.windslash.itriplanery"
     minSdk = 24
     targetSdk = 36
     versionCode = 1

@@ -1,9 +1,9 @@
-package com.example.viewmodel
+package com.windslash.itriplanery.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.data.*
+import com.windslash.itriplanery.data.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID

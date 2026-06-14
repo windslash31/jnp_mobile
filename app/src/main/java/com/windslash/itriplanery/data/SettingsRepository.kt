@@ -1,4 +1,4 @@
-package com.example.data
+package com.windslash.itriplanery.data
 
 import android.content.Context
 import androidx.datastore.core.DataStore

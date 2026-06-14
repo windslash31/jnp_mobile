@@ -1,4 +1,4 @@
-package com.example.data
+package com.windslash.itriplanery.data
 
 data class BookingTarget(
     val title: String,

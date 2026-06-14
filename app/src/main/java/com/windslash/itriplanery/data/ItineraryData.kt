@@ -1,4 +1,4 @@
-package com.example.data
+package com.windslash.itriplanery.data
 
 data class ItineraryStep(
     val time: String,

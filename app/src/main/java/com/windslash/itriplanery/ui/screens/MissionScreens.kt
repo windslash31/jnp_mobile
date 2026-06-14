@@ -1,4 +1,4 @@
-package com.example.ui.screens
+package com.windslash.itriplanery.ui.screens
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -44,8 +44,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.data.*
-import com.example.viewmodel.MainViewModel
+import com.windslash.itriplanery.data.*
+import com.windslash.itriplanery.viewmodel.MainViewModel
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlinx.coroutines.launch
@@ -254,8 +254,8 @@ fun ItineraryScreen(viewModel: MainViewModel) {
     val day = itineraryDays.getOrNull(selectedDayIndex) ?: itineraryDays.firstOrNull() ?: return
 
     var selectedIntelStep by remember { mutableStateOf<ItineraryStep?>(null) }
-    var pendingExpenseStep by remember { mutableStateOf<Pair<String, com.example.data.ItineraryStep>?>(null) }
-    var stepEditorState by remember { mutableStateOf<Triple<String, Int, com.example.data.ItineraryStep>?>(null) }
+    var pendingExpenseStep by remember { mutableStateOf<Pair<String, com.windslash.itriplanery.data.ItineraryStep>?>(null) }
+    var stepEditorState by remember { mutableStateOf<Triple<String, Int, com.windslash.itriplanery.data.ItineraryStep>?>(null) }
     var stepToDelete by remember { mutableStateOf<Pair<String, Int>?>(null) }
     
     val scope = rememberCoroutineScope()
@@ -503,7 +503,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         onRemoveClicked = { idx -> stepToDelete = Pair("morning", idx) }
                     )
                     TextButton(onClick = { 
-                        stepEditorState = Triple("morning", -1, com.example.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
+                        stepEditorState = Triple("morning", -1, com.windslash.itriplanery.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
                     }, modifier = Modifier.padding(bottom = 16.dp)) {
                         Text("+ Add Step", color = BentoBlueAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
@@ -520,7 +520,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         onRemoveClicked = { idx -> stepToDelete = Pair("afternoon", idx) }
                     )
                     TextButton(onClick = { 
-                        stepEditorState = Triple("afternoon", -1, com.example.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
+                        stepEditorState = Triple("afternoon", -1, com.windslash.itriplanery.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
                     }, modifier = Modifier.padding(bottom = 16.dp)) {
                         Text("+ Add Step", color = BentoBlueAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
@@ -537,7 +537,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         onRemoveClicked = { idx -> stepToDelete = Pair("evening", idx) }
                     )
                     TextButton(onClick = { 
-                        stepEditorState = Triple("evening", -1, com.example.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
+                        stepEditorState = Triple("evening", -1, com.windslash.itriplanery.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
                     }, modifier = Modifier.padding(bottom = 16.dp)) {
                         Text("+ Add Step", color = BentoBlueAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
@@ -554,7 +554,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         onRemoveClicked = { idx -> stepToDelete = Pair("alternative", idx) }
                     )
                     TextButton(onClick = { 
-                        stepEditorState = Triple("alternative", -1, com.example.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
+                        stepEditorState = Triple("alternative", -1, com.windslash.itriplanery.data.ItineraryStep("12:00", "", "", 0, "visit", null, null))
                     }, modifier = Modifier.padding(bottom = 16.dp)) {
                         Text("+ Add Alternative", color = BentoBlueAccent, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
@@ -1035,7 +1035,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                         Button(
                             onClick = {
                                 val costVal = newCost.toIntOrNull() ?: 0
-                                val step = com.example.data.ItineraryStep(
+                                val step = com.windslash.itriplanery.data.ItineraryStep(
                                     time = newTime,
                                     text = newTitle,
                                     meta = if (editorState.second >= 0) editorState.third.meta else "Added",
@@ -1078,7 +1078,7 @@ fun TimelineItemSection(
     checks: Map<String, Boolean>,
     context: Context,
     onCheckChanged: (String, Boolean, ItineraryStep) -> Unit,
-    onStrategyClicked: (com.example.data.ItineraryStep) -> Unit,
+    onStrategyClicked: (com.windslash.itriplanery.data.ItineraryStep) -> Unit,
     onEditClicked: ((Int) -> Unit)? = null,
     onRemoveClicked: ((Int) -> Unit)? = null
 ) {
@@ -1388,7 +1388,7 @@ fun MapScreen(viewModel: MainViewModel) {
     val markers = day.markers
     val alts = day.alts
 
-    var selectedMarker by remember { mutableStateOf<com.example.data.MapMarker?>(null) }
+    var selectedMarker by remember { mutableStateOf<com.windslash.itriplanery.data.MapMarker?>(null) }
     var webViewRef by remember { mutableStateOf<android.webkit.WebView?>(null) }
 
     LaunchedEffect(selectedMarker) {

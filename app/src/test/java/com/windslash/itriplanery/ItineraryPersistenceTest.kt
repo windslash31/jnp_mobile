@@ -1,12 +1,12 @@
-package com.example
+package com.windslash.itriplanery
 
 import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
-import com.example.data.AppDatabase
-import com.example.data.ItineraryData
-import com.example.data.JapanMissionRepository
-import com.example.data.StepEntity
+import com.windslash.itriplanery.data.AppDatabase
+import com.windslash.itriplanery.data.ItineraryData
+import com.windslash.itriplanery.data.JapanMissionRepository
+import com.windslash.itriplanery.data.StepEntity
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
