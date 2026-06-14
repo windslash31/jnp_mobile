@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.data.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: JapanMissionRepository
@@ -13,6 +14,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         val database = AppDatabase.getDatabase(application)
         repository = JapanMissionRepository(database)
+        // First launch: seed the persisted steps from the static itinerary.
+        viewModelScope.launch { repository.seedStepsIfEmpty(ItineraryData.days) }
     }
 
     // Active screen tab state
@@ -23,9 +26,35 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _selectedDayIndex = MutableStateFlow(0)
     val selectedDayIndex: StateFlow<Int> = _selectedDayIndex.asStateFlow()
 
-    // Itinerary List State (In-Memory Editable)
-    private val _itineraryDays = MutableStateFlow(ItineraryData.days)
-    val itineraryDays: StateFlow<List<ItineraryDay>> = _itineraryDays.asStateFlow()
+    // Persisted itinerary steps (single source of truth). Eager so edit actions can
+    // read the current list synchronously to map a UI index -> the step's stable id.
+    private val allSteps: StateFlow<List<StepEntity>> = repository.allSteps
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    // Itinerary days = static day metadata (title/location/food/markers…) combined with
+    // the editable steps loaded from the database.
+    val itineraryDays: StateFlow<List<ItineraryDay>> = allSteps
+        .map { steps -> buildDays(steps) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ItineraryData.days)
+
+    private fun buildDays(steps: List<StepEntity>): List<ItineraryDay> {
+        val byDay = steps.groupBy { it.dayIndex }
+        return ItineraryData.days.mapIndexed { dayIndex, day ->
+            val daySteps = byDay[dayIndex] ?: emptyList()
+            fun period(p: String) = daySteps.filter { it.period == p }.sortedBy { it.time }.map { it.toStep() }
+            day.copy(
+                morning = period("morning"),
+                afternoon = period("afternoon"),
+                evening = period("evening"),
+                customAlts = period("alternative")
+            )
+        }
+    }
+
+    // Current persisted steps for a day/period, ordered the same way buildDays orders them,
+    // so a UI step index maps to the right entity.
+    private fun stepsFor(dayIndex: Int, period: String): List<StepEntity> =
+        allSteps.value.filter { it.dayIndex == dayIndex && it.period == period }.sortedBy { it.time }
 
     // Transactions Flow
     val transactions: StateFlow<List<TransactionEntity>> = repository.allTransactions
@@ -102,74 +131,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // --- Editor Actions ---
-    data class DeletedItem(val dayIndex: Int, val period: String, val stepIndex: Int, val step: ItineraryStep)
-    private var lastDeletedItem: DeletedItem? = null
+    // --- Editor Actions (all persisted to Room) ---
+    // Keeps the last deleted entity (with its stable id) so undo can re-insert it exactly.
+    private var lastDeletedStep: StepEntity? = null
 
     fun removeStep(dayIndex: Int, period: String, stepIndex: Int) {
-        val days = _itineraryDays.value.toMutableList()
-        val currentDay = days[dayIndex]
-        
-        val deletedStep = when (period) {
-            "morning" -> currentDay.morning[stepIndex]
-            "afternoon" -> currentDay.afternoon[stepIndex]
-            "evening" -> currentDay.evening[stepIndex]
-            else -> return
-        }
-        lastDeletedItem = DeletedItem(dayIndex, period, stepIndex, deletedStep)
-
-        val newDay = when (period) {
-            "morning" -> currentDay.copy(morning = currentDay.morning.toMutableList().apply { removeAt(stepIndex) })
-            "afternoon" -> currentDay.copy(afternoon = currentDay.afternoon.toMutableList().apply { removeAt(stepIndex) })
-            "evening" -> currentDay.copy(evening = currentDay.evening.toMutableList().apply { removeAt(stepIndex) })
-            "alternative" -> currentDay.copy(customAlts = currentDay.customAlts.toMutableList().apply { removeAt(stepIndex) })
-            else -> currentDay
-        }
-        days[dayIndex] = newDay
-        _itineraryDays.value = days
+        val entity = stepsFor(dayIndex, period).getOrNull(stepIndex) ?: return
+        lastDeletedStep = entity
+        viewModelScope.launch { repository.deleteStep(entity.id) }
     }
 
     fun undoLastDelete() {
-        val last = lastDeletedItem ?: return
-        val days = _itineraryDays.value.toMutableList()
-        if (last.dayIndex >= days.size) return
-        val currentDay = days[last.dayIndex]
-        val newDay = when (last.period) {
-            "morning" -> currentDay.copy(morning = currentDay.morning.toMutableList().apply { add(last.stepIndex.coerceIn(0, size), last.step) })
-            "afternoon" -> currentDay.copy(afternoon = currentDay.afternoon.toMutableList().apply { add(last.stepIndex.coerceIn(0, size), last.step) })
-            "evening" -> currentDay.copy(evening = currentDay.evening.toMutableList().apply { add(last.stepIndex.coerceIn(0, size), last.step) })
-            else -> currentDay
-        }
-        days[last.dayIndex] = newDay
-        _itineraryDays.value = days
-        lastDeletedItem = null
+        val entity = lastDeletedStep ?: return
+        lastDeletedStep = null
+        viewModelScope.launch { repository.upsertStep(entity) }
     }
 
     fun updateStep(dayIndex: Int, period: String, stepIndex: Int, step: ItineraryStep) {
-        val days = _itineraryDays.value.toMutableList()
-        val currentDay = days[dayIndex]
-        val newDay = when (period) {
-            "morning" -> currentDay.copy(morning = currentDay.morning.toMutableList().apply { set(stepIndex, step) }.sortedBy { it.time })
-            "afternoon" -> currentDay.copy(afternoon = currentDay.afternoon.toMutableList().apply { set(stepIndex, step) }.sortedBy { it.time })
-            "evening" -> currentDay.copy(evening = currentDay.evening.toMutableList().apply { set(stepIndex, step) }.sortedBy { it.time })
-            "alternative" -> currentDay.copy(customAlts = currentDay.customAlts.toMutableList().apply { set(stepIndex, step) }.sortedBy { it.time })
-            else -> currentDay
-        }
-        days[dayIndex] = newDay
-        _itineraryDays.value = days
+        // Reuse the existing step's id (so it's an update, not a duplicate insert).
+        val existingId = stepsFor(dayIndex, period).getOrNull(stepIndex)?.id ?: UUID.randomUUID().toString()
+        viewModelScope.launch { repository.upsertStep(step.toEntity(dayIndex, period, existingId)) }
     }
 
     fun addStep(dayIndex: Int, period: String, step: ItineraryStep) {
-        val days = _itineraryDays.value.toMutableList()
-        val currentDay = days[dayIndex]
-        val newDay = when (period) {
-            "morning" -> currentDay.copy(morning = currentDay.morning.toMutableList().apply { add(step) }.sortedBy { it.time })
-            "afternoon" -> currentDay.copy(afternoon = currentDay.afternoon.toMutableList().apply { add(step) }.sortedBy { it.time })
-            "evening" -> currentDay.copy(evening = currentDay.evening.toMutableList().apply { add(step) }.sortedBy { it.time })
-            "alternative" -> currentDay.copy(customAlts = currentDay.customAlts.toMutableList().apply { add(step) }.sortedBy { it.time })
-            else -> currentDay
-        }
-        days[dayIndex] = newDay
-        _itineraryDays.value = days
+        viewModelScope.launch { repository.upsertStep(step.toEntity(dayIndex, period)) }
     }
 }
