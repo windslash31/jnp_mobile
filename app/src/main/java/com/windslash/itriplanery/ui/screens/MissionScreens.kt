@@ -411,7 +411,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                     .padding(bottom = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                itemsIndexed(ItineraryData.days) { index, item ->
+                itemsIndexed(itineraryDays) { index, item ->
                     val isSelected = index == selectedDayIndex
                     Column(
                         modifier = Modifier
@@ -1598,7 +1598,7 @@ fun MapScreen(viewModel: MainViewModel) {
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                itemsIndexed(ItineraryData.days) { index, item ->
+                itemsIndexed(itineraryDays) { index, item ->
                     val isSelected = index == activeDayIndex
                     Box(
                         modifier = Modifier

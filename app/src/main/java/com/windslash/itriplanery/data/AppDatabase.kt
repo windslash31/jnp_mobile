@@ -5,6 +5,7 @@ import androidx.room.*
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import java.util.UUID
 
 // --- ENTITIES ---
@@ -62,6 +63,13 @@ data class StepEntity(
     val type: String,
     val details: String?,
     val mapQuery: String?
+)
+
+// Itinerary day metadata, stored as a JSON blob (DayMeta) keyed by day index.
+@Entity(tableName = "itinerary_days")
+data class DayEntity(
+    @PrimaryKey val dayIndex: Int,
+    val dataJson: String
 )
 
 // Mappers between the persisted entity and the UI/domain model used everywhere else.
@@ -122,6 +130,21 @@ interface TripDao {
 }
 
 @Dao
+interface DayDao {
+    @Query("SELECT * FROM itinerary_days ORDER BY dayIndex")
+    fun getAll(): Flow<List<DayEntity>>
+
+    @Query("SELECT COUNT(*) FROM itinerary_days")
+    suspend fun count(): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(days: List<DayEntity>)
+
+    @Query("DELETE FROM itinerary_days")
+    suspend fun clearAll()
+}
+
+@Dao
 interface ItineraryStepDao {
     @Query("SELECT * FROM itinerary_steps")
     fun getAllSteps(): Flow<List<StepEntity>>
@@ -137,13 +160,16 @@ interface ItineraryStepDao {
 
     @Query("DELETE FROM itinerary_steps WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    @Query("DELETE FROM itinerary_steps")
+    suspend fun clearAllSteps()
 }
 
 // --- DATABASE ---
 
 @Database(
-    entities = [TransactionEntity::class, ItineraryCheckEntity::class, FoodCheckEntity::class, StepEntity::class, TripEntity::class],
-    version = 4,
+    entities = [TransactionEntity::class, ItineraryCheckEntity::class, FoodCheckEntity::class, StepEntity::class, TripEntity::class, DayEntity::class],
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -152,6 +178,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun foodCheckDao(): FoodCheckDao
     abstract fun itineraryStepDao(): ItineraryStepDao
     abstract fun tripDao(): TripDao
+    abstract fun dayDao(): DayDao
 
     companion object {
         @Volatile
@@ -192,6 +219,16 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // v4 -> v5: add the itinerary_days table (day metadata blob; seeded at runtime).
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `itinerary_days` (" +
+                        "`dayIndex` INTEGER NOT NULL, `dataJson` TEXT NOT NULL, PRIMARY KEY(`dayIndex`))"
+                )
+            }
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -199,7 +236,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "japan_mission_database"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .fallbackToDestructiveMigration(dropAllTables = true) // safety net for unhandled version jumps
                     .build()
                 INSTANCE = instance
@@ -217,6 +254,8 @@ class JapanMissionRepository(private val db: AppDatabase) {
     val allFoodChecks: Flow<List<FoodCheckEntity>> = db.foodCheckDao().getAllFoodChecks()
     val allSteps: Flow<List<StepEntity>> = db.itineraryStepDao().getAllSteps()
     val activeTrip: Flow<TripEntity?> = db.tripDao().getActiveTrip()
+    val allDays: Flow<List<DayMeta>> = db.dayDao().getAll()
+        .map { list -> list.mapNotNull { DayMetaJson.fromJson(it.dataJson) } }
 
     suspend fun insertTransaction(tx: TransactionEntity) {
         db.transactionDao().insertTransaction(tx)
@@ -274,5 +313,20 @@ class JapanMissionRepository(private val db: AppDatabase) {
             }
         }
         dao.upsertAll(seed)
+    }
+
+    // Seed day metadata (titles/dates/locations/markers/objectives) on first run.
+    suspend fun seedDaysIfEmpty(days: List<ItineraryDay>) {
+        val dao = db.dayDao()
+        if (dao.count() > 0) return
+        dao.upsertAll(days.mapIndexed { i, d -> DayEntity(i, DayMetaJson.toJson(d.toMeta())) })
+    }
+
+    // Replace the entire itinerary (days + steps) — used by import (#25).
+    suspend fun replaceItinerary(metas: List<DayMeta>, stepsByDay: List<List<StepEntity>>) {
+        db.dayDao().clearAll()
+        db.itineraryStepDao().clearAllSteps()
+        db.dayDao().upsertAll(metas.mapIndexed { i, m -> DayEntity(i, DayMetaJson.toJson(m)) })
+        db.itineraryStepDao().upsertAll(stepsByDay.flatten())
     }
 }
