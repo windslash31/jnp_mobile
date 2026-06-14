@@ -67,6 +67,16 @@ val AlertRed = Color(0xFFEF4444)
 val AccentAmber = Color(0xFFF59E0B)
 val GreenM3 = Color(0xFF10B981)
 
+// Strong accents for SOLID buttons/badges/icons that carry a white foreground.
+// These are FIXED (don't invert with the theme) so white text/icons stay readable in
+// both light and dark mode — unlike the Bento*TextDark colors, which flip to light in
+// dark mode and made white-on-them invisible.
+val AccentBlueStrong = Color(0xFF005FB0)
+val AccentGreenStrong = Color(0xFF1E7A4D)
+val AccentRedStrong = Color(0xFFB3261E)
+val AccentLilacStrong = Color(0xFF7E3FA0)
+val AccentGrayStrong = Color(0xFF4A4E57)
+
 // --- BENTO GRID DESIGN COLOR SCHEME ---
 val BentoBackground: Color @Composable get() = if (isDark) Color(0xFF121212) else Color(0xFFF7F9FF)
 val BentoTextDark: Color @Composable get() = if (isDark) Color(0xFFE2E2E2) else Color(0xFF1B1B1F)
@@ -609,7 +619,7 @@ fun ItineraryScreen(viewModel: MainViewModel) {
                                         onClick = { launchGoogleMaps(context, alt.query) },
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .background(BentoGrayTextDark, CircleShape)
+                                            .background(AccentGrayStrong, CircleShape)
                                     ) {
                                         Icon(Icons.Filled.LocationOn, contentDescription = "Navigate", tint = Color.White, modifier = Modifier.size(16.dp))
                                     }
@@ -1324,7 +1334,7 @@ fun ObjectiveRow(title: String, obj: PriorityObjective, context: Context) {
     val bg = if (isFood) BentoLilacBg else BentoGreenBg
     val textDark = if (isFood) BentoLilacTextDark else BentoGreenTextDark
     val textSubtle = if (isFood) BentoLilacTextSubtle else BentoGreenTextSubtle
-    val buttonBg = if (isFood) BentoLilacTextDark else BentoGreenTextDark
+    val buttonBg = if (isFood) AccentLilacStrong else AccentGreenStrong
     val buttonTint = Color.White
 
     Row(
@@ -1397,15 +1407,12 @@ fun MapScreen(viewModel: MainViewModel) {
         }
     }
 
-    // HTML with Leaflet and map pins
-    val darkTheme = isDark
-    val mapBg = if (darkTheme) "#121212" else "#F7F9FF"
-    val tileUrl = if (darkTheme)
-        "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    else
-        "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+    // HTML with Leaflet and map pins. Keep the map on readable light 'voyager' tiles even
+    // in dark mode — legibility matters more here than matching the dark chrome.
+    val mapBg = "#F7F9FF"
+    val tileUrl = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
     val allSteps = day.morning + day.afternoon + day.evening + day.customAlts
-    val htmlContent = remember(activeDayIndex, day, markers, alts, darkTheme) {
+    val htmlContent = remember(activeDayIndex, day, markers, alts) {
         val markersArray = JSONArray()
         var seqId = 1
         allSteps.forEach { step ->
@@ -1911,7 +1918,7 @@ fun GourmetScreen(viewModel: MainViewModel) {
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Box(
                                                     modifier = Modifier
-                                                        .background(BentoLilacTextDark, RoundedCornerShape(4.dp))
+                                                        .background(AccentLilacStrong, RoundedCornerShape(4.dp))
                                                         .padding(horizontal = 5.dp, vertical = 2.dp)
                                                 ) {
                                                     Text("MUST", fontSize = 7.sp, fontWeight = FontWeight.Black, color = Color.White)
@@ -1935,7 +1942,7 @@ fun GourmetScreen(viewModel: MainViewModel) {
                                         onClick = { launchGoogleMaps(context, item.name + " " + item.area) },
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .background(BentoLilacTextDark, CircleShape)
+                                            .background(AccentLilacStrong, CircleShape)
                                     ) {
                                         Icon(Icons.Filled.LocationOn, "Go", tint = Color.White, modifier = Modifier.size(16.dp))
                                     }
@@ -2216,7 +2223,7 @@ fun BudgetScreen(viewModel: MainViewModel) {
     ) {
         FloatingActionButton(
             onClick = { isAddModalOpen = true },
-            containerColor = BentoGreenTextDark,
+            containerColor = AccentGreenStrong,
             shape = CircleShape,
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -2342,7 +2349,7 @@ fun BudgetScreen(viewModel: MainViewModel) {
                                 }
                             },
                             modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.buttonColors(containerColor = BentoGreenTextDark)
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentGreenStrong)
                         ) {
                             Text("Save", color = Color.White, fontWeight = FontWeight.Black)
                         }
@@ -2555,7 +2562,7 @@ fun IntelScreen(viewModel: MainViewModel) {
                                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(target.link))
                                         context.startActivity(intent)
                                     },
-                                    colors = ButtonDefaults.buttonColors(containerColor = BentoRedTextDark),
+                                    colors = ButtonDefaults.buttonColors(containerColor = AccentRedStrong),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text("LOCK BOOKING SITE", color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
@@ -2640,7 +2647,7 @@ fun IntelScreen(viewModel: MainViewModel) {
                                             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(target.link))
                                             context.startActivity(intent)
                                         },
-                                        colors = ButtonDefaults.buttonColors(containerColor = BentoBlueTextDark),
+                                        colors = ButtonDefaults.buttonColors(containerColor = AccentBlueStrong),
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Text("BOOK VIA TABLECHECK", color = Color.White, fontWeight = FontWeight.Black, fontSize = 11.sp)
@@ -2691,7 +2698,7 @@ fun IntelScreen(viewModel: MainViewModel) {
                                     clipboard.setText(AnnotatedString(TipsData.conciergeScript))
                                     Toast.makeText(context, "Copy successful", Toast.LENGTH_SHORT).show()
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = BentoBlueTextDark),
+                                colors = ButtonDefaults.buttonColors(containerColor = AccentBlueStrong),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
