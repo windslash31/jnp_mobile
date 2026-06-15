@@ -58,7 +58,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 )
             )
             val metas = env.days.mapIndexed { i, d ->
-                DayMeta(date = d.date, day = "Day ${i + 1}", title = d.title, location = d.location, steps = 0)
+                DayMeta(
+                    date = d.date,
+                    day = d.day.ifBlank { "Day ${i + 1}" },
+                    title = d.title,
+                    location = d.location,
+                    steps = d.steps,
+                    food = d.food?.let { PriorityObjective(it.name, it.type, it.budget, it.query, it.time) },
+                    snack = d.snack?.let { PriorityObjective(it.name, it.type, it.budget, it.query, it.time) },
+                    alts = d.contingencies.map { ContingencyPlan(it.name, it.budget, it.desc, it.query, it.match) },
+                    markers = d.markers.map { MapMarker(it.lat, it.lng, it.type, it.seq, it.title, it.query, it.meta) }
+                )
             }
             val stepsByDay = env.days.mapIndexed { i, d ->
                 fun List<StepExport>.toEntities(period: String) = map {
@@ -68,7 +78,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         type = it.type, details = it.details, mapQuery = it.mapQuery
                     )
                 }
-                d.morning.toEntities("morning") + d.afternoon.toEntities("afternoon") + d.evening.toEntities("evening")
+                d.morning.toEntities("morning") + d.afternoon.toEntities("afternoon") +
+                    d.evening.toEntities("evening") + d.alternatives.toEntities("alternative")
             }
             repository.replaceItinerary(metas, stepsByDay)
         }

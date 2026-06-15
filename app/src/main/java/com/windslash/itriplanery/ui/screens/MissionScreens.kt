@@ -7,6 +7,8 @@ import android.net.Uri
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -3132,6 +3134,19 @@ fun ImportDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
     var json by remember { mutableStateOf("") }
+    val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            try {
+                val text = context.contentResolver.openInputStream(it)?.bufferedReader()?.use { r -> r.readText() }
+                if (!text.isNullOrBlank()) {
+                    json = text
+                    Toast.makeText(context, "File loaded — review and tap Import", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Couldn't read file", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     ThemedDialog(onDismissRequest = onDismiss) {
         Card(
@@ -3159,6 +3174,17 @@ fun ImportDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
                     Text("Copy AI prompt", color = BentoTextDark, fontWeight = FontWeight.Bold)
                 }
                 Spacer(modifier = Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = { filePicker.launch("application/json") },
+                    modifier = Modifier.fillMaxWidth(),
+                    border = BorderStroke(1.dp, BentoTextSubtle.copy(alpha = 0.3f))
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null, tint = BentoTextDark, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Load .json file", color = BentoTextDark, fontWeight = FontWeight.Bold)
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("…or paste below:", fontSize = 11.sp, color = BentoTextSubtle, modifier = Modifier.padding(bottom = 4.dp))
                 OutlinedTextField(
                     value = json,
                     onValueChange = { json = it },

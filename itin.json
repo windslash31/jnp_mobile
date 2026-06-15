@@ -1,0 +1,914 @@
+{
+  "schemaVersion": 1,
+  "trip": {
+    "name": "Tokyo & Surroundings Trip",
+    "destination": "Tokyo, Kamakura, Kawaguchiko",
+    "startDate": "Oct 9",
+    "endDate": "Oct 19",
+    "currencyCode": "JPY",
+    "budgetAmount": 220000,
+    "travelerNames": "2 Travelers"
+  },
+  "days": [
+    {
+      "date": "Day 1",
+      "title": "Old Tokyo & The Market Rush",
+      "location": "Ueno/Yanaka/Ameyoko",
+      "morning": [
+        {
+          "time": "07:30",
+          "text": "LAND at Narita (Royal Brunei). Clear immigration. Buy a bottle of green tea immediately for hydration.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "09:00",
+          "text": "TRAIN: Keisei Skyliner -> Keisei-Ueno. Relax and enjoy the countryside view. The fastest way into the city.",
+          "type": "transit",
+          "cost": 2580
+        },
+        {
+          "time": "10:00",
+          "text": "ARRIVE Ueno. Drop Bags at Hotel. Leave bags at front desk (Check-in is 15:00). Keep valuables and passport with you.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "10:15",
+          "text": "WALK: Ueno Park (The 'Adrenaline' Walk). Walk through the main park avenue. Stop by Toshogu Shrine (Gold Shrine) if you have energy. Fresh air to fight jet lag.",
+          "type": "sightseeing",
+          "cost": 0
+        },
+        {
+          "time": "11:00",
+          "text": "WALK: To Nezu via Cemetery. Exit the back of the park. Quiet, historic neighborhood path.",
+          "type": "sightseeing",
+          "cost": 0
+        },
+        {
+          "time": "11:30",
+          "text": "Lunch: Kamachiku (Nezu). The Hidden Gem: Udon served in a 1910 stone warehouse with a garden view. Shoes off, tatami mats. Perfect peace after the flight. Order: 'Kama-age' (Hot dipping) or 'Zaru' (Cold).",
+          "type": "food",
+          "cost": 2000
+        }
+      ],
+      "afternoon": [
+        {
+          "time": "13:00",
+          "text": "Stroll: Yanaka Ginza (Optional). Old-school shopping street. If you are dying of tiredness, skip this and head back to Ueno immediately.",
+          "type": "sightseeing",
+          "cost": 0
+        },
+        {
+          "time": "14:30",
+          "text": "RETURN: Walk or Train back to Ueno Hotel. Grab key, get into room.",
+          "type": "transit",
+          "cost": 0
+        },
+        {
+          "time": "15:00",
+          "text": "NAP PROTOCOL (Strict 90 Mins). Rules: Shower immediately (Hot/Cold contrast). Set alarm for 1.5 Hours. Do NOT sleep longer or you ruin the night.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "16:30",
+          "text": "WAKE UP. Force yourself out. It will be hard. Go outside immediately.",
+          "type": "logistics",
+          "cost": 0
+        }
+      ],
+      "evening": [
+        {
+          "time": "16:45",
+          "text": "Ameyoko Exploration Strategy. Choose Your Fighter (Snack Strategy): 1. The Refresher: Fresh Fruit Stick. 2. The Local King: 'Niku no Ooyama' Menchi Katsu. 3. The Sugar: 'Coco-chan' Baby Castella. 4. The Boost: Boss Coffee (Black) from Vending Machine.",
+          "type": "sightseeing",
+          "cost": 1000
+        },
+        {
+          "time": "17:45",
+          "text": "Wander: London Sports or Niki no Kashi. Visual overload to keep you awake. Discount candy and crazy sneaker piles.",
+          "type": "shopping",
+          "cost": 0
+        },
+        {
+          "time": "18:30",
+          "text": "Dinner: Kamo to Negi (Duck Ramen). Why Here: Tier S rating, fast turnover. Rich duck broth + leeks. 3 mins from Ameyoko. CRITICAL PRO-TIP: You MUST buy your ramen ticket from the vending machine FIRST, and then get into the physical line.",
+          "type": "food",
+          "cost": 1200
+        },
+        {
+          "time": "20:00",
+          "text": "Konbini Raid & Crash. Buy 2L Water and breakfast for tomorrow, get Famichiki/Lawson Chicken, get pudding. Sleep by 21:00.",
+          "type": "food",
+          "cost": 1000
+        },
+        {
+          "time": "21:00",
+          "text": "RETURN: The 'Cool Down' Walk Home. Route: Walk along the main road (Chuo-dori), not the back alleys, for better lighting/safety.",
+          "type": "transit",
+          "cost": 0
+        }
+      ]
+    },
+    {
+      "date": "Day 2",
+      "title": "Movie Magic & The Otaku Kingdom",
+      "location": "Toshimaen/Nakano",
+      "morning": [
+        {
+          "time": "08:30",
+          "text": "DEPART HOTEL. Walk to Ueno-Okachimachi Station (~5 mins).",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "08:45",
+          "text": "TRAIN: Toei Oedo Line -> Toshimaen Station. The Themed Commute: A direct line with zero transfers. The station itself is heavily themed. Perfect for taking photos before the actual tour begins.",
+          "type": "transit",
+          "cost": 330
+        },
+        {
+          "time": "09:30",
+          "text": "Warner Bros. Studio Tour Tokyo. Tactical Entry: A massive 4-hour walkthrough. Pay special attention to the 'Creature Effects' and 'Art Department' sections to see the underlying architecture and animatronic mechanics.",
+          "type": "sightseeing",
+          "cost": 6500
+        }
+      ],
+      "afternoon": [
+        {
+          "time": "13:30",
+          "text": "DEPART Studio. Train to Nerima, then Bus to Nakano. Smart Route: Take the Oedo Line one stop back to Nerima, then catch Kanto Bus #41 straight to Nakano. This avoids doubling back through central Tokyo.",
+          "type": "transit",
+          "cost": 400
+        },
+        {
+          "time": "14:15",
+          "text": "Lunch: Chuka Soba Aoba (Nakano Main Store). The Legend: This is the shop that invented the 'Double Soup' (Pork + Seafood) style. It is fast, efficient, and iconic, giving you more time for Nakano Broadway.",
+          "type": "food",
+          "cost": 1000
+        },
+        {
+          "time": "15:15",
+          "text": "Nakano Broadway. Mandarake (2F-4F). Gundam Mission: Spend your afternoon hunting for Pokemon cards and Gundams across the upper floors.",
+          "type": "shopping",
+          "cost": 0
+        },
+        {
+          "time": "16:30",
+          "text": "Snack: Daily Chi-co (B1F Nakano Broadway). The Sweet Reward: Head down to the basement (B1) of Nakano Broadway. They are famous for their giant 8-layer soft serve ice cream. Split one before leaving the mall.",
+          "type": "food",
+          "cost": 800
+        }
+      ],
+      "evening": [
+        {
+          "time": "18:00",
+          "text": "DEPART Nakano. Train -> Kanda -> Okachimachi.",
+          "type": "transit",
+          "cost": 170
+        },
+        {
+          "time": "18:45",
+          "text": "Dinner: Gyukatsu Aona (Okachimachi). Muscle Recovery: Aona uses Lean Red Meat/A5 Wagyu (not injected fat). 5 mins walk from your hotel area. Much more authentic than tourist traps.",
+          "type": "food",
+          "cost": 2500
+        },
+        {
+          "time": "20:30",
+          "text": "RETURN: Walk back to Hop Inn Ueno.",
+          "type": "transit",
+          "cost": 0
+        }
+      ]
+    },
+    {
+      "date": "Day 3",
+      "title": "Digital Art & The Fish God",
+      "location": "Toyosu/Odaiba/Shimbashi",
+      "morning": [
+        {
+          "time": "08:15",
+          "text": "DEPART HOTEL. Walk to Ueno Station (~8 mins).",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "08:30",
+          "text": "TRAIN: JR Yamanote Line -> Yurakucho Station.",
+          "type": "transit",
+          "cost": 350
+        },
+        {
+          "time": "08:45",
+          "text": "TRANSFER: Exit JR Yurakucho. Walk to Yurakucho Subway (Yurakucho Line). Board train to Toyosu.",
+          "type": "transit",
+          "cost": 0
+        },
+        {
+          "time": "08:55",
+          "text": "ARRIVE Toyosu Station. Walk 10 mins to TeamLab.",
+          "type": "transit",
+          "cost": 0
+        },
+        {
+          "time": "09:00",
+          "text": "TeamLab Planets (Pre-booked). Prep: Wear shorts that roll up easily (water is knee-deep). Avoid skirts.",
+          "type": "visit",
+          "cost": 3800
+        }
+      ],
+      "afternoon": [
+        {
+          "time": "11:30",
+          "text": "Lunch: Toyosu Senkyaku Banrai — Edo seafood-street lunch. A vibrant culinary street next to the market.",
+          "type": "food",
+          "cost": 4500
+        },
+        {
+          "time": "13:30",
+          "text": "Manyo Club Onsen / Foot Bath. Relax and soak your feet after a long morning of walking.",
+          "type": "visit",
+          "cost": 3000
+        },
+        {
+          "time": "17:30",
+          "text": "ESCAPE: Take Yurikamome Line -> Shimbashi Station. Leaving now guarantees you beat the 19:30 dinner rush in the city.",
+          "type": "transit",
+          "cost": 330
+        }
+      ],
+      "evening": [
+        {
+          "time": "18:40",
+          "text": "Dinner: Uokin OR Tsujihan. Option A (The Local Legend): Uokin Shimbashi. Loud, authentic Izakaya. Option B (Culinary Heaven): Tsujihan (Nihonbashi). The 'Seafood Jewel Box' bowl.",
+          "type": "food",
+          "cost": 5000
+        },
+        {
+          "time": "20:30",
+          "text": "TRAIN: Return to Base. From Shimbashi: Take JR Yamanote Line (Green) or Keihin-Tohoku Line (Blue) -> Ueno Station.",
+          "type": "transit",
+          "cost": 200
+        }
+      ]
+    },
+    {
+      "date": "Day 4",
+      "title": "Hamburg, Pancakes & Rikimaru",
+      "location": "Harajuku/Shibuya/Ikebukuro",
+      "morning": [
+        {
+          "time": "09:20",
+          "text": "DEPART HOTEL. Walk to Ueno Station (~8 mins).",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "09:30",
+          "text": "TRAIN: JR Yamanote Line (Direct) -> Harajuku Station.",
+          "type": "transit",
+          "cost": 210
+        },
+        {
+          "time": "10:00",
+          "text": "ARRIVE Harajuku. Walk to Meiji Shrine Forest (West Exit). Walk through the giant Torii gate into the forest. A peaceful start before the chaos.",
+          "type": "visit",
+          "cost": 0
+        },
+        {
+          "time": "11:00",
+          "text": "Takeshita Street Strategy (Crepes vs Chaos). The Crepe Decision: Buy a Marion Crepe here to share. Warning: If you eat a whole one, you might be too full for Flipper's Pancakes later.",
+          "type": "food",
+          "cost": 600
+        },
+        {
+          "time": "11:30",
+          "text": "Shopping: Kiddy Land (Omotesando). Chiikawa Zone: Located inside. Buy your plushies/goods here. 4 floors of character goods.",
+          "type": "shopping",
+          "cost": 0
+        }
+      ],
+      "afternoon": [
+        {
+          "time": "12:30",
+          "text": "WALK: Harajuku -> Shibuya via Miyashita Park. Walk along Cat Street, then go up to the Rooftop Park at Miyashita.",
+          "type": "sightseeing",
+          "cost": 0
+        },
+        {
+          "time": "13:30",
+          "text": "Lunch: Kiwamiya Hamburg (Parco B1F). Strategy: Grill your own Wagyu hamburg. Alts: Hikiniku to Kome.",
+          "type": "food",
+          "cost": 2500
+        },
+        {
+          "time": "15:00",
+          "text": "Dessert: Flipper's Shibuya. Protocol: If you didn't eat the Crepe earlier, this is the main event. Order the 'Kiseki Pancake' (Miracle Pancake).",
+          "type": "food",
+          "cost": 1500
+        },
+        {
+          "time": "16:15",
+          "text": "WALK: To Scramble Square. Elevator to Sky.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "16:30",
+          "text": "Shibuya Sky (Sunset Slot). Pre-booked: Watch the sunset over Mt. Fuji (if clear) and the scramble crossing below.",
+          "type": "sightseeing",
+          "cost": 2500
+        }
+      ],
+      "evening": [
+        {
+          "time": "18:00",
+          "text": "TRANSIT: Shibuya -> Ikebukuro (Fukutoshin Line). Fast express train (15 mins) to Ikebukuro.",
+          "type": "transit",
+          "cost": 200
+        },
+        {
+          "time": "18:30",
+          "text": "Gap Strategy: Gunpla & Smart Shopping. Consolidation Move: Do your Gundam/Anime shopping at Yamada Denki LABI1 (6F) NOW instead of Day 8. Afterwards, hit Seiyu Supermarket or Donki West Exit for cheap snacks.",
+          "type": "shopping",
+          "cost": 1000
+        },
+        {
+          "time": "20:00",
+          "text": "Dinner: Yakiniku Rikimaru (Ikebukuro). Reservation: 20:00 Slot. High-value Osaka-style Wagyu AYCE. Order via tablet.",
+          "type": "food",
+          "cost": 5500
+        },
+        {
+          "time": "22:00",
+          "text": "Return to Ueno (JR Yamanote). Safety Check: The train takes 16 mins. You will be back in Ueno by 22:30.",
+          "type": "transit",
+          "cost": 170
+        }
+      ]
+    },
+    {
+      "date": "Day 5",
+      "title": "Traditional Coast (Weekday)",
+      "location": "Kamakura",
+      "morning": [
+        {
+          "time": "08:30",
+          "text": "DEPART HOTEL. Walk to Ueno Station. Weekday rush hour is ending. Trains should be okay.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "08:45",
+          "text": "TRAIN: JR Ueno-Tokyo Line (Green Car). Green Car Protocol: Buy via Suica Green Car machine, tap Suica on the ceiling reader above your seat.",
+          "type": "transit",
+          "cost": 1950
+        },
+        {
+          "time": "09:45",
+          "text": "ARRIVE Kamakura Station. DECISION TIME (Bike vs Tram). Traffic is light on Tuesdays. Bikes are highly recommended.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "10:30",
+          "text": "Great Buddha (Kotoku-in). Optional stop: Hase-dera near the Great Buddha (cut it day-of if your legs are gone).",
+          "type": "visit",
+          "cost": 300
+        }
+      ],
+      "afternoon": [
+        {
+          "time": "12:00",
+          "text": "RETURN BIKES. Lunch at Komachi-dori. Head to the main street for food.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "12:30",
+          "text": "Lunch: Onigiri Konga (Unagi Butter). Target the Unagi Butter Onigiri. Grab Giraffa Curry Bread as side dish.",
+          "type": "food",
+          "cost": 2500
+        },
+        {
+          "time": "15:00",
+          "text": "Tsurugaoka Hachimangu Shrine.",
+          "type": "visit",
+          "cost": 0
+        },
+        {
+          "time": "17:30",
+          "text": "TRAIN: Kamakura -> Ueno. Use the same Green Car protocol if you are tired.",
+          "type": "transit",
+          "cost": 950
+        }
+      ],
+      "evening": [
+        {
+          "time": "19:00",
+          "text": "Dinner: Ponta (Tonkatsu). Strategy: Historic pedigree classic. Alternative: Tonkatsu Yamabe (Comfort, cheap, crispy local favorite).",
+          "type": "food",
+          "cost": 4000
+        },
+        {
+          "time": "21:00",
+          "text": "RETURN: Short Walk to Hotel. Since you dined in Ueno, just walk back. Stop at a pharmacy if you need foot detox sheets.",
+          "type": "logistics",
+          "cost": 0
+        }
+      ]
+    },
+    {
+      "date": "Day 6",
+      "title": "Godlike Udon & age.3",
+      "location": "Ginza/Bay Area",
+      "morning": [
+        {
+          "time": "09:00",
+          "text": "DEPART HOTEL. Walk to Ueno Station (Metro Gates).",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "09:10",
+          "text": "TRAIN: Hibiya Line (Gray) -> Higashi-Ginza Station.",
+          "type": "transit",
+          "cost": 180
+        },
+        {
+          "time": "09:30",
+          "text": "ARRIVE Hanayama Udon. Join physical line.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "10:00",
+          "text": "TICKET PULL. Get number from machine. You have 75 mins.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "10:10",
+          "text": "Gap Filler: Walk 2 mins to Itoya Ginza.",
+          "type": "shopping",
+          "cost": 0
+        },
+        {
+          "time": "11:30",
+          "text": "Lunch: Hanayama Udon (or Rengatei). Primary Target: 'Oni-Himokawa' (Wide Noodle). Backup Target: Rengatei.",
+          "type": "food",
+          "cost": 2000
+        }
+      ],
+      "afternoon": [
+        {
+          "time": "12:45",
+          "text": "Dessert: age.3 (Fried Sandwich). Walk 5 mins from Udon. The viral fried bread sandwich. Cream/Fruit filling.",
+          "type": "food",
+          "cost": 500
+        },
+        {
+          "time": "13:30",
+          "text": "WALK: To Yurakucho Station (JR).",
+          "type": "transit",
+          "cost": 0
+        },
+        {
+          "time": "13:40",
+          "text": "TRAIN: JR Keiyo Line -> Kasai-Rinkai-Koen Station.",
+          "type": "transit",
+          "cost": 400
+        },
+        {
+          "time": "14:10",
+          "text": "Tokyo Sea Life Park. Tuna Tank.",
+          "type": "visit",
+          "cost": 700
+        },
+        {
+          "time": "16:15",
+          "text": "DEPART Aquarium. Walk back to Station.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "16:30",
+          "text": "TRAIN: Keiyo Line -> Hatchobori -> Transfer Yurakucho Line -> Tsukishima.",
+          "type": "transit",
+          "cost": 350
+        }
+      ],
+      "evening": [
+        {
+          "time": "17:15",
+          "text": "ARRIVE Tsukishima. Walk to 'Monja Street'.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "17:30",
+          "text": "Dinner: Monja Moheji Flagship.",
+          "type": "food",
+          "cost": 4000
+        },
+        {
+          "time": "20:00",
+          "text": "TRAIN: The Oedo Line Shortcut. Take the Toei Oedo Line directly from Tsukishima -> Ueno-Okachimachi Station (~14 mins).",
+          "type": "transit",
+          "cost": 220
+        }
+      ]
+    },
+    {
+      "date": "Day 7",
+      "title": "Fuji View",
+      "location": "Kawaguchiko",
+      "morning": [
+        {
+          "time": "06:50",
+          "text": "DEPART HOTEL. Walk to Ueno Station (~8 mins).",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "07:00",
+          "text": "TRAIN: JR Yamanote Line -> Shinjuku Station.",
+          "type": "transit",
+          "cost": 210
+        },
+        {
+          "time": "07:30",
+          "text": "ARRIVE Shinjuku. Follow signs to 'New South Gate' / 'Busta Shinjuku' (4F).",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "07:45",
+          "text": "BUS: Highway Bus -> Kawaguchiko Station (Pre-booked).",
+          "type": "transit",
+          "cost": 2200
+        },
+        {
+          "time": "09:30",
+          "text": "ARRIVE Kawaguchiko. DECISION TIME (Bike vs Bus). Recommended: Walk to 'Fujisanbike' & Rent E-Bike.",
+          "type": "logistics",
+          "cost": 3000
+        },
+        {
+          "time": "10:00",
+          "text": "CYCLE: Ride Counter-Clockwise towards Oishi Park. Keep Mt. Fuji in front of your face.",
+          "type": "transit",
+          "cost": 0
+        },
+        {
+          "time": "10:30",
+          "text": "Oishi Park (The Rest Stop). MUST EAT: The famous Blueberry Soft Serve is here. Eat it with the Fuji view.",
+          "type": "food",
+          "cost": 500
+        }
+      ],
+      "afternoon": [
+        {
+          "time": "11:00",
+          "text": "CYCLE: Continue to Iyashi no Sato (~30-40 mins more).",
+          "type": "transit",
+          "cost": 0
+        },
+        {
+          "time": "11:45",
+          "text": "Iyashi no Sato (Village). Explore the thatched houses. If you skipped soft serve, get Matcha here.",
+          "type": "visit",
+          "cost": 500
+        },
+        {
+          "time": "13:30",
+          "text": "RETURN: Cycle back to Kawaguchiko Station Area.",
+          "type": "transit",
+          "cost": 0
+        },
+        {
+          "time": "14:30",
+          "text": "Lunch: Sanrokuen. Robatayaki hearth experience. Alternative: Fuji Tempura Idaten.",
+          "type": "food",
+          "cost": 3500
+        },
+        {
+          "time": "16:30",
+          "text": "Return Bikes / Shop at Station.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "17:33",
+          "text": "RAIL BAILOUT. Fuji Excursion Train (Kawaguchiko -> Shinjuku). Return Strategy: Train is recommended to guarantee dinner.",
+          "type": "transit",
+          "cost": 4130
+        }
+      ],
+      "evening": [
+        {
+          "time": "19:45",
+          "text": "Dinner: Tatsunoya Shinjuku. Walk from Shinjuku Stn (~10 mins). Rich Tsukemen. Queue moves fast.",
+          "type": "food",
+          "cost": 1500
+        },
+        {
+          "time": "21:00",
+          "text": "TRAIN: Shinjuku -> Ueno. Enter via East Gate. Take JR Yamanote Line (Clockwise).",
+          "type": "transit",
+          "cost": 210
+        }
+      ]
+    },
+    {
+      "date": "Day 8",
+      "title": "Otaku Shopping",
+      "location": "Ikebukuro/Akiba",
+      "morning": [
+        {
+          "time": "09:30",
+          "text": "DEPART HOTEL. Walk to Ueno Station (~8 mins).",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "09:40",
+          "text": "TRAIN: JR Yamanote/Keihin-Tohoku Line -> Akihabara Station.",
+          "type": "transit",
+          "cost": 160
+        },
+        {
+          "time": "09:50",
+          "text": "ARRIVE Akihabara. Electric Town Exit.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "10:00",
+          "text": "Radio Kaikan. 9 Floors of figures (Yellow Sign). Start at Radio Kaikan as soon as doors open to beat the crowds.",
+          "type": "shopping",
+          "cost": 0
+        },
+        {
+          "time": "11:45",
+          "text": "Lunch: Roast Beef Ohno OR Go Go Curry. Roast Beef Ohno is legendary in Akiba for its volcano-shaped wagyu beef bowls.",
+          "type": "food",
+          "cost": 1800
+        }
+      ],
+      "afternoon": [
+        {
+          "time": "13:00",
+          "text": "Explore: Akihabara Backstreets (Junk Street). Check out Super Potato for retro games, and wander the alleys.",
+          "type": "sightseeing",
+          "cost": 0
+        },
+        {
+          "time": "15:00",
+          "text": "Arcade Run: GiGO or Taito Station. Try the UFO catchers or play some rhythm games on the upper floors.",
+          "type": "sightseeing",
+          "cost": 1500
+        },
+        {
+          "time": "16:00",
+          "text": "Snack: Naruto Taiyaki Honpo. Freshly baked Taiyaki (Fish-shaped cake). Crispy thin skin. Great energy booster.",
+          "type": "food",
+          "cost": 300
+        }
+      ],
+      "evening": [
+        {
+          "time": "18:45",
+          "text": "DEPART Akihabara. Walk to Station.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "19:00",
+          "text": "TRAIN: Akihabara -> Shinjuku (JR Chuo/Sobu Line).",
+          "type": "transit",
+          "cost": 180
+        },
+        {
+          "time": "19:20",
+          "text": "ARRIVE Shinjuku. Exit West Exit.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "19:30",
+          "text": "Photo Op: Omoide Yokocho ('Piss Alley'). Walk through the alley just to take cool neon cyberpunk photos, but DO NOT stop to eat here.",
+          "type": "sightseeing",
+          "cost": 0
+        },
+        {
+          "time": "19:50",
+          "text": "Sightseeing: The 3D Cat Billboard. Walk towards the East Exit to see the famous giant 3D Calico Cat billboard.",
+          "type": "sightseeing",
+          "cost": 0
+        },
+        {
+          "time": "20:15",
+          "text": "Dinner: Negishi (Beef Tongue Set Meals). The Clean Escape: 100% smoke-free, comfort food after a loud day.",
+          "type": "food",
+          "cost": 2000
+        },
+        {
+          "time": "21:30",
+          "text": "RETURN: Shinjuku -> Ueno. Enter via East Gate. Take JR Yamanote Line -> Ueno.",
+          "type": "transit",
+          "cost": 210
+        }
+      ]
+    },
+    {
+      "date": "Day 9",
+      "title": "The Solamachi Sniper",
+      "location": "Asakusa/Skytree",
+      "morning": [
+        {
+          "time": "08:15",
+          "text": "DEPART HOTEL. Walk to Ueno Station (~8 mins).",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "08:25",
+          "text": "TRAIN: Ginza Line -> Asakusa Station.",
+          "type": "transit",
+          "cost": 180
+        },
+        {
+          "time": "08:30",
+          "text": "ARRIVE Asakusa. Walk to Senso-ji Temple.",
+          "type": "visit",
+          "cost": 0
+        },
+        {
+          "time": "09:30",
+          "text": "Snack: Kagetsudo Melonpan. The Jumbo Melonpan: Located to the left of the main hall. Freshly baked, warm, sugary crust.",
+          "type": "food",
+          "cost": 300
+        },
+        {
+          "time": "10:00",
+          "text": "WALK: Cross 'Sumida River Walk' bridge to Skytree (~20 mins).",
+          "type": "transit",
+          "cost": 0
+        },
+        {
+          "time": "10:30",
+          "text": "THE TICKET PULL: Toriton Sushi (Solamachi 6F). Pull a queue ticket immediately. Expected wait: 90 mins.",
+          "type": "food",
+          "cost": 0
+        },
+        {
+          "time": "10:45",
+          "text": "Gap Filler: Go to Tower Yard 2F. Buy cookies and a 'Milk Pie' at Tokyo Milk Cheese Factory.",
+          "type": "shopping",
+          "cost": 0
+        }
+      ],
+      "afternoon": [
+        {
+          "time": "12:30",
+          "text": "Check Queue Status & Return.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "12:45",
+          "text": "Lunch: Toriton Sushi. Order 'Botan Ebi' (Huge Shrimp) and 'Aburi Salmon'.",
+          "type": "food",
+          "cost": 3500
+        },
+        {
+          "time": "14:30",
+          "text": "Return to Asakusa (Walk or Train). Suzukien (Matcha Gelato).",
+          "type": "food",
+          "cost": 800
+        }
+      ],
+      "evening": [
+        {
+          "time": "18:00",
+          "text": "Dinner: Okonomiyaki Sometaro. Cook your own Okonomiyaki in a historic wooden house. Queue is worth it for the vibe.",
+          "type": "food",
+          "cost": 2500
+        },
+        {
+          "time": "20:30",
+          "text": "RETURN: Ginza Line or Taxi. Option A (Train): Ginza Line -> Ueno. Option B (Luxury): Taxi.",
+          "type": "transit",
+          "cost": 180
+        }
+      ]
+    },
+    {
+      "date": "Day 10",
+      "title": "The Float Battles (Finale)",
+      "location": "Kawagoe (Little Edo)",
+      "morning": [
+        {
+          "time": "09:00",
+          "text": "DEPART HOTEL. Train to Ikebukuro -> Kawagoe. Take the Tobu Tojo Line (Express or Rapid Express).",
+          "type": "transit",
+          "cost": 650
+        },
+        {
+          "time": "10:30",
+          "text": "ARRIVE Kawagoe. Walk to Old Town. The town will be packed with festival energy.",
+          "type": "sightseeing",
+          "cost": 0
+        },
+        {
+          "time": "11:30",
+          "text": "Lunch: Ogakiku (Unagi) OR Mio Casalo. FESTIVAL WARNING: 1 million people visit this weekend. Go straight to the Ogakiku ticket machine immediately at 10:30.",
+          "type": "food",
+          "cost": 4000
+        }
+      ],
+      "afternoon": [
+        {
+          "time": "13:00",
+          "text": "Kawagoe Festival (Daytime Floats). Eating hot Takoyaki from a festival stall with the floats passing by adds the critical 'vibe seasoning'.",
+          "type": "sightseeing",
+          "cost": 0
+        },
+        {
+          "time": "15:00",
+          "text": "Snack: Coedo Beer & Imokoi. Local sweet potato ale and dumplings.",
+          "type": "food",
+          "cost": 800
+        }
+      ],
+      "evening": [
+        {
+          "time": "17:30",
+          "text": "Hikkawase (Musical Battle). The main event. Lanterns lit, music battles at intersections. Unforgettable finale.",
+          "type": "sightseeing",
+          "cost": 0
+        },
+        {
+          "time": "19:00",
+          "text": "ESCAPE. Return to Ikebukuro.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "20:30",
+          "text": "Late Dinner: Mutekiya (Ikebukuro). Famous Tonkotsu to end the trip. REALITY CHECK: Queue might still be 45-60 mins. Pivot to Kikanbo or Hulu-lu if needed.",
+          "type": "food",
+          "cost": 1300
+        },
+        {
+          "time": "21:30",
+          "text": "TRAIN: The Final Yamanote Ride. Route: JR Yamanote Line -> Ueno (~16 mins).",
+          "type": "transit",
+          "cost": 170
+        }
+      ]
+    },
+    {
+      "date": "Day 11",
+      "title": "Departure",
+      "location": "Narita Airport",
+      "morning": [
+        {
+          "time": "07:00",
+          "text": "CHECK OUT. Walk to Keisei-Ueno.",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "07:30",
+          "text": "TRAIN: Keisei Skyliner to Narita. You need the ~07:40 train to be safe for 11:45 flight.",
+          "type": "transit",
+          "cost": 2580
+        },
+        {
+          "time": "08:15",
+          "text": "ARRIVE Narita Airport (3 Hours early).",
+          "type": "logistics",
+          "cost": 0
+        },
+        {
+          "time": "08:30",
+          "text": "Last Snack: Konbini Onigiri or Yoshinoya. Spend remaining coins.",
+          "type": "food",
+          "cost": 1000
+        }
+      ],
+      "afternoon": [
+        {
+          "time": "11:45",
+          "text": "FLIGHT: Depart Tokyo.",
+          "type": "transit",
+          "cost": 0
+        }
+      ],
+      "evening": []
+    }
+  ]
+}
