@@ -13,3 +13,32 @@ fun itineraryProgress(days: List<ItineraryDay>, checks: Map<String, Boolean>): I
     val completed = allSteps.count { checks[it.id] == true }
     return ((completed.toFloat() / allSteps.size) * 100).toInt()
 }
+
+/**
+ * Build the Gourmet/Food list from the itinerary's food-type steps, so the Food tab reflects
+ * the active/imported trip instead of a static hardcoded list. Pure + unit-testable.
+ */
+fun deriveFoodCategories(days: List<ItineraryDay>): List<FoodCategory> {
+    val foodTypes = setOf("food", "sweets", "street")
+    val items = days.flatMap { d ->
+        (d.morning + d.afternoon + d.evening + d.customAlts)
+            .filter { it.type.lowercase() in foodTypes }
+            .map { s ->
+                FoodItem(
+                    id = s.id,
+                    name = s.text,
+                    dish = s.meta.ifBlank { s.type.replaceFirstChar { c -> c.uppercase() } },
+                    area = d.day,
+                    note = s.details ?: "",
+                    mustTry = false
+                )
+            }
+    }
+    return if (items.isEmpty()) emptyList()
+    else listOf(
+        FoodCategory(
+            id = "itinerary", name = "From Your Itinerary", icon = "🍽️",
+            bgColor = "#FFFBEB", textColor = "#D97706", tagline = "Eat Protocol", items = items
+        )
+    )
+}

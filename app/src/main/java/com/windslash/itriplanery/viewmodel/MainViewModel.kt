@@ -32,6 +32,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { repository.updateTrip(trip) }
     }
 
+    // Human-readable category tag derived from a step's type (for the chip when meta is blank).
+    private fun metaLabel(type: String): String = when (type.lowercase()) {
+        "food" -> "Food"
+        "transit" -> "Transit"
+        "logistics" -> "Logistics"
+        "shopping" -> "Shopping"
+        "sightseeing" -> "Sightseeing"
+        "visit" -> "Visit"
+        "sweets" -> "Sweets"
+        "street" -> "Street"
+        else -> type.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
+    }
+
     /** Serialize the active trip + its itinerary to portable JSON (for export/share). */
     fun exportJson(): String? {
         val trip = activeTrip.value ?: return null
@@ -74,7 +87,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 fun List<StepExport>.toEntities(period: String) = map {
                     StepEntity(
                         id = UUID.randomUUID().toString(), dayIndex = i, period = period,
-                        time = it.time, text = it.text, meta = it.meta, cost = it.cost,
+                        time = it.time, text = it.text,
+                        meta = it.meta.ifBlank { metaLabel(it.type) }, // category tag falls back to the type
+                        cost = it.cost,
                         type = it.type, details = it.details, mapQuery = it.mapQuery
                     )
                 }
@@ -163,6 +178,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val progressPercent: StateFlow<Int> = combine(itineraryChecks, itineraryDays) { checks, days ->
         itineraryProgress(days, checks)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    // Gourmet/Food tab — derived from the itinerary's food-type steps (so it reflects the
+    // active/imported trip instead of a static hardcoded list).
+    val foodCategories: StateFlow<List<FoodCategory>> = itineraryDays
+        .map { deriveFoodCategories(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Packing list
     val packingItems: StateFlow<List<PackingItemEntity>> = repository.allPacking

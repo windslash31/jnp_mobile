@@ -2,6 +2,7 @@ package com.windslash.itriplanery
 
 import com.windslash.itriplanery.data.ItineraryDay
 import com.windslash.itriplanery.data.ItineraryStep
+import com.windslash.itriplanery.data.deriveFoodCategories
 import com.windslash.itriplanery.data.itineraryProgress
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -59,5 +60,26 @@ class ItineraryProgressTest {
         val d2 = day(evening = listOf(step("c")))
         val checks = mapOf("a" to true, "b" to true, "c" to true)
         assertEquals(100, itineraryProgress(listOf(d1, d2), checks))
+    }
+
+    @Test
+    fun foodCategoriesPicksOnlyFoodTypeSteps() {
+        val d = day(
+            morning = listOf(
+                ItineraryStep("09:00", "Sushi Bar", "Lunch", 2000, "food", id = "a"),
+                ItineraryStep("10:00", "Museum", "", 0, "sightseeing", id = "b")
+            ),
+            evening = listOf(ItineraryStep("19:00", "Ramen", "Dinner", 1000, "food", id = "c"))
+        )
+        val cats = deriveFoodCategories(listOf(d))
+        assertEquals(1, cats.size)
+        assertEquals(2, cats[0].items.size) // food steps only, not the museum
+        assertEquals(setOf("Sushi Bar", "Ramen"), cats[0].items.map { it.name }.toSet())
+    }
+
+    @Test
+    fun foodCategoriesEmptyWhenNoFood() {
+        val d = day(morning = listOf(ItineraryStep("09:00", "Museum", "", 0, "sightseeing", id = "b")))
+        assertEquals(0, deriveFoodCategories(listOf(d)).size)
     }
 }

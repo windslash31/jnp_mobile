@@ -1208,15 +1208,17 @@ fun TimelineItemSection(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text(
-                                    text = item.meta.uppercase(Locale.getDefault()),
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Black,
-                                    color = BentoTextSubtle,
-                                    modifier = Modifier
-                                        .background(BentoBlueBg.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 4.dp, vertical = 2.dp)
-                                )
+                                if (item.meta.isNotBlank()) {
+                                    Text(
+                                        text = item.meta.uppercase(Locale.getDefault()),
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Black,
+                                        color = BentoTextSubtle,
+                                        modifier = Modifier
+                                            .background(BentoBlueBg.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                                    )
+                                }
                                 if (item.cost > 0) {
                                     Text(
                                         text = "$currencySymbol${item.cost}",
@@ -1402,7 +1404,10 @@ fun MapScreen(viewModel: MainViewModel) {
 
     LaunchedEffect(selectedMarker) {
         selectedMarker?.let { pt ->
-            webViewRef?.evaluateJavascript("if(typeof map !== 'undefined') map.setView([${pt.lat}, ${pt.lng}], 16);", null)
+            // Only pan if we actually have coordinates (derived-from-step markers are 0,0).
+            if (pt.lat != 0.0 || pt.lng != 0.0) {
+                webViewRef?.evaluateJavascript("if(typeof map !== 'undefined') map.setView([${pt.lat}, ${pt.lng}], 16);", null)
+            }
         }
     }
 
@@ -1420,8 +1425,15 @@ fun MapScreen(viewModel: MainViewModel) {
     // in dark mode — legibility matters more here than matching the dark chrome.
     val mapBg = "#F7F9FF"
     val tileUrl = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+    // Center on the first known marker; otherwise a neutral world view (geocoding pans later).
+    val initialCenter = markers.firstOrNull()?.let { "[${it.lat}, ${it.lng}], 13" } ?: "[20.0, 0.0], 2"
     val allSteps = day.morning + day.afternoon + day.evening + day.customAlts
-    val htmlContent = remember(activeDayIndex, day, markers, alts) {
+    // Carousel data: use pre-baked markers if present, else derive cards from the steps that
+    // have a map query (so imported trips, which have no markers, still get a usable carousel).
+    val carouselMarkers = if (markers.isNotEmpty()) markers
+    else allSteps.filter { !it.mapQuery.isNullOrBlank() }
+        .mapIndexed { i, s -> com.windslash.itriplanery.data.MapMarker(0.0, 0.0, s.type, i + 1, s.text, s.mapQuery!!, s.meta) }
+    val htmlContent = remember(activeDayIndex, day, markers, alts, initialCenter) {
         val markersArray = JSONArray()
         var seqId = 1
         allSteps.forEach { step ->
@@ -1477,7 +1489,7 @@ fun MapScreen(viewModel: MainViewModel) {
         <body>
             <div id="map"></div>
             <script>
-                var map = L.map('map', { zoomControl: false }).setView([35.6895, 139.6917], 13);
+                var map = L.map('map', { zoomControl: false }).setView($initialCenter);
                 L.tileLayer('$tileUrl', {
                     attribution: ''
                 }).addTo(map);
@@ -1485,6 +1497,7 @@ fun MapScreen(viewModel: MainViewModel) {
                 var markersGroup = L.featureGroup().addTo(map);
                 var bounds = [];
                 var points = $markersArray;
+                var toGeocode = [];
                 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
                 points.forEach(function(pt) {
@@ -1516,26 +1529,36 @@ fun MapScreen(viewModel: MainViewModel) {
                         var marker = L.marker([pt.lat, pt.lng], { icon: customIcon }).addTo(markersGroup);
                         marker.bindPopup("<b>" + esc(pt.title) + "</b><br><small>" + esc(pt.meta) + "</small>");
                         bounds.push([pt.lat, pt.lng]);
-                    } else {
-                        // fallback geocoding
-                        fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(pt.query))
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data && data.length > 0) {
-                                    var lat = parseFloat(data[0].lat);
-                                    var lon = parseFloat(data[0].lon);
-                                    var marker = L.marker([lat, lon], { icon: customIcon }).addTo(markersGroup);
-                                    marker.bindPopup("<b>" + esc(pt.title) + "</b><br><small>" + esc(pt.meta) + "</small>");
-                                    bounds.push([lat, lon]);
-                                    map.fitBounds(bounds, { padding: [50, 50] });
-                                }
-                            });
+                    } else if (pt.query) {
+                        toGeocode.push({ q: pt.query, icon: customIcon, title: pt.title, meta: pt.meta });
                     }
                 });
 
                 if (bounds.length > 0) {
                     map.fitBounds(bounds, { padding: [50, 50] });
                 }
+
+                // Geocode the remaining points ONE AT A TIME (Nominatim's usage policy is ~1 req/sec;
+                // firing them all in parallel got the requests rate-limited, so most pins never showed).
+                var gi = 0;
+                function geocodeNext() {
+                    if (gi >= toGeocode.length) return;
+                    var it = toGeocode[gi++];
+                    fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(it.q))
+                        .then(function(r){ return r.json(); })
+                        .then(function(data){
+                            if (data && data.length > 0) {
+                                var lat = parseFloat(data[0].lat), lon = parseFloat(data[0].lon);
+                                L.marker([lat, lon], { icon: it.icon }).addTo(markersGroup)
+                                    .bindPopup("<b>" + esc(it.title) + "</b><br><small>" + esc(it.meta) + "</small>");
+                                bounds.push([lat, lon]);
+                                map.fitBounds(bounds, { padding: [50, 50] });
+                            }
+                        })
+                        .catch(function(){})
+                        .then(function(){ setTimeout(geocodeNext, 1100); });
+                }
+                geocodeNext();
             </script>
         </body>
         </html>
@@ -1682,7 +1705,7 @@ fun MapScreen(viewModel: MainViewModel) {
                         modifier = Modifier.weight(1f),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(markers, key = { it.title }) { pt ->
+                        items(carouselMarkers, key = { "${it.seq}-${it.title}" }) { pt ->
                             val isItemActive = selectedMarker == pt
                             Card(
                                 modifier = Modifier
@@ -1747,10 +1770,11 @@ fun GourmetScreen(viewModel: MainViewModel) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf("all") }
     val foodChecks by viewModel.foodChecks.collectAsStateWithLifecycle()
+    val categories by viewModel.foodCategories.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    val totalCount = FoodData.categories.sumOf { it.items.size }
-    val completedCount = FoodData.categories.sumOf { cat ->
+    val totalCount = categories.sumOf { it.items.size }
+    val completedCount = categories.sumOf { cat ->
         cat.items.count { foodChecks[it.id] == true }
     }
     val percentPercent = if (totalCount == 0) 0 else ((completedCount.toFloat() / totalCount) * 100).toInt()
@@ -1848,7 +1872,7 @@ fun GourmetScreen(viewModel: MainViewModel) {
             item {
                 CategoryPill("all", "All", "🍱", selectedCategory == "all", selectedBg = BentoLilacBg, selectedTextColor = BentoLilacTextDark) { selectedCategory = "all" }
             }
-            items(FoodData.categories) { cat ->
+            items(categories) { cat ->
                 CategoryPill(cat.id, cat.name, cat.icon, selectedCategory == cat.id, selectedBg = BentoLilacBg, selectedTextColor = BentoLilacTextDark) { selectedCategory = cat.id }
             }
         }
@@ -1861,7 +1885,7 @@ fun GourmetScreen(viewModel: MainViewModel) {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            FoodData.categories.forEach { category ->
+            categories.forEach { category ->
                 if (selectedCategory == "all" || selectedCategory == category.id) {
                     val filteredItems = category.items.filter {
                         searchQuery.isEmpty() ||
