@@ -63,4 +63,27 @@ class TripExportTest {
         assertNull(TripJson.fromJson("this is not json"))
         assertNull(TripJson.fromJson(""))
     }
+
+    @Test
+    fun parsesStepsWithMissingOptionalFields() {
+        // Regression: alternative steps usually omit "time" — must not reject the import.
+        val json = """
+            {
+              "schemaVersion": 1,
+              "trip": { "name": "T", "destination": "D", "currencyCode": "JPY", "budgetAmount": 100 },
+              "days": [
+                { "date": "Day 1",
+                  "morning": [],
+                  "alternatives": [ { "text": "Backup option", "type": "food", "cost": 1500, "mapQuery": "X" } ] }
+              ]
+            }
+        """.trimIndent()
+
+        val env = TripJson.fromJson(json)
+        assertNotNull(env)
+        assertEquals("D", env!!.trip.destination)
+        assertEquals(1, env.days.size)
+        assertEquals("Backup option", env.days[0].alternatives[0].text)
+        assertEquals("", env.days[0].alternatives[0].time) // defaulted, not crashed
+    }
 }

@@ -6,9 +6,11 @@ import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 // --- Portable trip schema (shared by export #15 and import #25) ---
 // Versioned so the format can evolve. Plain data classes serialized via Moshi reflection.
 
+// NOTE: every field has a default so a partial/varied JSON still parses (Moshi throws
+// on a missing field that has no default). E.g. "alternatives" steps usually omit "time".
 data class StepExport(
-    val time: String,
-    val text: String,
+    val time: String = "",
+    val text: String = "",
     val meta: String = "",
     val cost: Int = 0,
     val type: String = "other",
@@ -17,7 +19,7 @@ data class StepExport(
 )
 
 data class ObjectiveExport(
-    val name: String,
+    val name: String = "",
     val type: String = "",
     val budget: Int = 0,
     val query: String = "",
@@ -25,7 +27,7 @@ data class ObjectiveExport(
 )
 
 data class ContingencyExport(
-    val name: String,
+    val name: String = "",
     val budget: Int = 0,
     val desc: String = "",
     val query: String = "",
@@ -33,8 +35,8 @@ data class ContingencyExport(
 )
 
 data class MarkerExport(
-    val lat: Double,
-    val lng: Double,
+    val lat: Double = 0.0,
+    val lng: Double = 0.0,
     val type: String = "visit",
     val seq: Int = 0,
     val title: String = "",
@@ -59,18 +61,18 @@ data class DayExport(
 )
 
 data class TripExport(
-    val name: String,
-    val destination: String,
-    val startDate: String,
-    val endDate: String,
-    val currencyCode: String,
-    val budgetAmount: Double,
-    val travelerNames: String
+    val name: String = "",
+    val destination: String = "",
+    val startDate: String = "",
+    val endDate: String = "",
+    val currencyCode: String = "JPY",
+    val budgetAmount: Double = 0.0,
+    val travelerNames: String = ""
 )
 
 data class TripExportEnvelope(
     val schemaVersion: Int = 1,
-    val trip: TripExport,
+    val trip: TripExport = TripExport(),
     val days: List<DayExport> = emptyList()
 )
 
