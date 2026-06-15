@@ -899,12 +899,13 @@ fun ItineraryScreen(viewModel: MainViewModel) {
     stepEditorState?.let { editorState ->
         val period = editorState.first
         val step = editorState.third
-        var newTime by remember { mutableStateOf(step.time) }
-        var newTitle by remember { mutableStateOf(step.text) }
-        var newDetails by remember { mutableStateOf(step.details ?: "") }
-        var newMapUrl by remember { mutableStateOf(step.mapQuery ?: "") }
-        var newCost by remember { mutableStateOf(if (step.cost > 0) step.cost.toString() else "") }
-        var newCategory by remember { mutableStateOf(step.type.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }) }
+        // Key on editorState so opening the editor for a different step re-initializes the fields.
+        var newTime by remember(editorState) { mutableStateOf(step.time) }
+        var newTitle by remember(editorState) { mutableStateOf(step.text) }
+        var newDetails by remember(editorState) { mutableStateOf(step.details ?: "") }
+        var newMapUrl by remember(editorState) { mutableStateOf(step.mapQuery ?: "") }
+        var newCost by remember(editorState) { mutableStateOf(if (step.cost > 0) step.cost.toString() else "") }
+        var newCategory by remember(editorState) { mutableStateOf(step.type.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }) }
         
         ThemedDialog(onDismissRequest = { stepEditorState = null }) {
             Card(
@@ -1107,6 +1108,7 @@ fun TimelineItemSection(
             // Prefer the step's stable id; fall back to positional key for any step
             // without one (shouldn't happen once steps are loaded from the database).
             val checkKey = item.id.ifEmpty { "d$dayIndex-$sectionTag-$i" }
+            androidx.compose.runtime.key(checkKey) {
             val isCompleted = checks[checkKey] == true
 
             @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -1280,6 +1282,7 @@ fun TimelineItemSection(
                     }
                 }
             )
+            } // end key(checkKey)
         }
     }
 }
@@ -3150,7 +3153,7 @@ private const val IMPORT_AI_PROMPT = """Create a travel itinerary as JSON. Outpu
       "morning":   [ { "time": "09:00", "text": "", "type": "visit", "cost": 0, "details": "", "mapQuery": "" } ],
       "afternoon": [ { "time": "13:00", "text": "", "type": "food", "cost": 0 } ],
       "evening":   [ { "time": "19:00", "text": "", "type": "food", "cost": 0 } ],
-      "alternatives":  [ { "time": "15:00", "text": "Backup option", "type": "visit", "cost": 0 } ],
+      "alternatives":  [ { "time": "15:00", "text": "Backup option", "type": "visit", "cost": 0, "details": "Why/when to pick this backup" } ],
       "food":  { "name": "", "type": "", "budget": 0, "query": "", "time": "" },
       "snack": { "name": "", "type": "", "budget": 0, "query": "", "time": "" },
       "contingencies": [ { "name": "", "budget": 0, "desc": "", "query": "" } ]
