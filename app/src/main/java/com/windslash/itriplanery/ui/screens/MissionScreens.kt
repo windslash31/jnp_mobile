@@ -3116,18 +3116,31 @@ private fun TripField(label: String, value: String, numeric: Boolean = false, on
 }
 
 // --- IMPORT ---
-private const val IMPORT_AI_PROMPT = """Create a travel itinerary as JSON. Output ONLY the JSON (no commentary), matching this EXACT structure:
+private const val IMPORT_AI_PROMPT = """Create a travel itinerary as JSON. Output ONLY the JSON (no commentary, no markdown fences), matching this EXACT structure:
 {
   "schemaVersion": 1,
   "trip": { "name": "", "destination": "", "startDate": "", "endDate": "", "currencyCode": "JPY", "budgetAmount": 0, "travelerNames": "" },
   "days": [
-    { "date": "Day 1", "title": "", "location": "",
-      "morning":   [ { "time": "09:00", "text": "", "type": "visit", "cost": 0 } ],
+    {
+      "date": "Oct 9 (Fri)", "day": "Day 1", "title": "", "location": "", "steps": 12000,
+      "morning":   [ { "time": "09:00", "text": "", "type": "visit", "cost": 0, "details": "", "mapQuery": "" } ],
       "afternoon": [ { "time": "13:00", "text": "", "type": "food", "cost": 0 } ],
-      "evening":   [ { "time": "19:00", "text": "", "type": "food", "cost": 0 } ] }
+      "evening":   [ { "time": "19:00", "text": "", "type": "food", "cost": 0 } ],
+      "alternatives":  [ { "time": "15:00", "text": "Backup option", "type": "visit", "cost": 0 } ],
+      "food":  { "name": "", "type": "", "budget": 0, "query": "", "time": "" },
+      "snack": { "name": "", "type": "", "budget": 0, "query": "", "time": "" },
+      "contingencies": [ { "name": "", "budget": 0, "desc": "", "query": "" } ]
+    }
   ]
 }
-Fill it with a realistic plan for: [DESTINATION], [DATES], [NUMBER OF TRAVELERS]. Use the local ISO currency code (e.g. JPY, USD, EUR). "type" must be one of: visit, food, transit, shopping, logistics, sightseeing. Include one object per day in "days"."""
+Rules:
+- Fill it for: [DESTINATION], [DATES], [NUMBER OF TRAVELERS].
+- "currencyCode": local ISO code (JPY, USD, EUR, IDR, ...). "budgetAmount": whole number, no separators.
+- "type" must be one of: visit, food, transit, shopping, logistics, sightseeing.
+- "steps" = rough daily step count. "details" and "mapQuery" are optional per step.
+- "alternatives" (backup activities), "food"/"snack" (must-eat targets), and "contingencies"
+  (rainy-day plans) are OPTIONAL — include them when useful, otherwise use [] or null.
+- One object per day in "days"."""
 
 @Composable
 fun ImportDialog(viewModel: MainViewModel, onDismiss: () -> Unit) {
